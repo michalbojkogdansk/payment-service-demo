@@ -108,12 +108,12 @@ def run_runbook():
         state.runbook_steps.append(step)
 
         if i == 0:
-            time.sleep(2)
+            time.sleep(random.uniform(1.5, 3.5))
             step["status"] = "done"
             state.add_log("INFO", f"Runbook [1/5]: {step_name}")
 
         elif i == 1:
-            time.sleep(3)
+            time.sleep(random.uniform(2.0, 5.0))
             root_cause = {
                 "connection_pool": "Connection pool exhausted (100/100)",
                 "timeout": "Downstream timeout — circuit breaker tripped",
@@ -124,22 +124,22 @@ def run_runbook():
             state.add_log("INFO", f"Root cause identified: {root_cause}")
 
         elif i == 2:
-            time.sleep(4)
+            time.sleep(random.uniform(3.0, 6.0))
             state.status = "recovering"
             state.add_log("INFO", "Restarting payment-service...")
-            time.sleep(3)
+            time.sleep(random.uniform(2.0, 5.0))
             state.status = "healthy"
             state.incident_resolved_at = time.time()
             step["status"] = "done"
             state.add_log("INFO", "✅ Service restarted successfully — health check PASSED")
 
         elif i == 3:
-            time.sleep(2)
+            time.sleep(random.uniform(1.5, 3.5))
             step["status"] = "done"
             state.add_log("INFO", "Recovery verified — payment processing resumed")
 
         elif i == 4:
-            time.sleep(1)
+            time.sleep(random.uniform(0.5, 2.0))
             mttr = round(state.incident_resolved_at - state.incident_started_at)
             step["status"] = "done"
             state.add_log("INFO", f"📨 Incident report: MTTR={mttr}s | Root cause: {state.chaos_mode}")
