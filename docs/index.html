@@ -295,7 +295,7 @@
     <div class="manual-header">
       <div>
         <div class="card-title" style="margin-bottom:4px">⏱️ What Would Happen Manually</div>
-        <div style="font-size:.72rem;color:var(--muted)">Average manual MTTR: <strong style="color:var(--red)">47 minutes</strong></div>
+        <div style="font-size:.72rem;color:var(--muted)">Average manual MTTR: <strong style="color:var(--red)">47 minutes</strong> &nbsp;<span style="color:var(--yellow);font-size:.68rem">⚡ 47× accelerated</span></div>
       </div>
       <div class="manual-timer" id="manual-timer">00:00</div>
     </div>
@@ -395,17 +395,20 @@ function buildManualSteps() {
   });
 }
 
+const MANUAL_SPEED = 47; // 47 real minutes compressed into ~60 real seconds
+
 function tickManual() {
   if (!incidentStartReal) return;
-  const elapsed = Math.floor((Date.now() - incidentStartReal) / 1000);
-  document.getElementById('manual-timer').textContent = fmtTime(elapsed);
+  const realElapsed = Math.floor((Date.now() - incidentStartReal) / 1000);
+  const manualElapsed = Math.min(realElapsed * MANUAL_SPEED, 47 * 60); // cap at 47 min
+  document.getElementById('manual-timer').textContent = fmtTime(manualElapsed);
 
   MANUAL_STEPS.forEach((s, i) => {
     const el = document.getElementById(`ms-${i}`);
     if (!el) return;
-    if (elapsed >= s.time) {
+    if (manualElapsed >= s.time) {
       const next = MANUAL_STEPS[i + 1];
-      if (next && elapsed >= next.time) {
+      if (next && manualElapsed >= next.time) {
         el.className = 'ms-step complete';
       } else {
         el.className = 'ms-step active';
