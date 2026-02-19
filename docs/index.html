@@ -352,20 +352,48 @@
     <ul class="manual-steps" id="manual-steps"></ul>
   </div>
 
-  <!-- CODE WINDOW -->
-  <div class="card" id="code-card">
+  <!-- INCIDENT SUMMARY -->
+  <div class="card" id="summary-card">
+    <div class="card-title" style="color:var(--green)">✅ Incident Resolved</div>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <label>Root Cause</label>
+        <div class="val" id="s-root">—</div>
+      </div>
+      <div class="summary-item">
+        <label>Detected</label>
+        <div class="val" id="s-detected">—</div>
+      </div>
+      <div class="summary-item">
+        <label>Resolved</label>
+        <div class="val" id="s-resolved">—</div>
+      </div>
+      <div class="summary-item">
+        <label>MTTR (Automated)</label>
+        <div class="val big" id="s-mttr">—</div>
+        <div class="summary-vs" id="s-vs">vs ~47 min manual</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODE WINDOW — bottom, hideable -->
+  <div class="card" id="code-card" style="grid-column:1/-1">
     <div class="code-header">
       <div>
         <div class="card-title" style="margin-bottom:2px">📄 Runbook as Code</div>
       </div>
-      <div class="code-tabs">
-        <button class="code-tab active" onclick="showTab('runbook')">runbook.py</button>
-        <button class="code-tab" onclick="showTab('trigger')">trigger.py</button>
-        <button class="code-tab" onclick="showTab('health')">health_check.py</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="code-tabs">
+          <button class="code-tab active" onclick="showTab('runbook')">runbook.py</button>
+          <button class="code-tab" onclick="showTab('trigger')">trigger.py</button>
+          <button class="code-tab" onclick="showTab('health')">health_check.py</button>
+        </div>
+        <button class="btn btn-muted" id="btn-toggle-code" onclick="toggleCode()" style="font-size:0.72rem;padding:4px 10px">▲ Hide</button>
       </div>
     </div>
-    <div class="code-window">
-      <pre id="code-runbook"><code class="language-python"># runbook.py — automated incident response
+    <div id="code-body">
+      <div class="code-window">
+        <pre id="code-runbook"><code class="language-python"># runbook.py — automated incident response
 # Auto-triggered when health check fails for > 8 seconds
 
 import asyncio, time, httpx, logging
@@ -420,7 +448,7 @@ async def run_runbook(incident_id: str, service_url: str):
     )
     await write_postmortem(incident_id, root_cause, mttr)</code></pre>
 
-      <pre id="code-trigger" style="display:none"><code class="language-python"># trigger.py — watches health endpoint, fires runbook on failure
+        <pre id="code-trigger" style="display:none"><code class="language-python"># trigger.py — watches health endpoint, fires runbook on failure
 
 import asyncio, time, httpx
 from runbook import run_runbook
@@ -461,7 +489,7 @@ async def watch():
 if __name__ == "__main__":
     asyncio.run(watch())</code></pre>
 
-      <pre id="code-health" style="display:none"><code class="language-python"># health_check.py — used by runbook to verify recovery
+        <pre id="code-health" style="display:none"><code class="language-python"># health_check.py — used by runbook to verify recovery
 
 import asyncio, httpx
 
@@ -509,29 +537,6 @@ def analyze_logs(logs: list[dict]) -> str:
         if "panic" in msg or "crash" in msg:
             return "Service panic / unexpected crash"
     return "Unknown — see logs"</code></pre>
-    </div>
-  </div>
-
-  <!-- INCIDENT SUMMARY -->
-  <div class="card" id="summary-card">
-    <div class="card-title" style="color:var(--green)">✅ Incident Resolved</div>
-    <div class="summary-grid">
-      <div class="summary-item">
-        <label>Root Cause</label>
-        <div class="val" id="s-root">—</div>
-      </div>
-      <div class="summary-item">
-        <label>Detected</label>
-        <div class="val" id="s-detected">—</div>
-      </div>
-      <div class="summary-item">
-        <label>Resolved</label>
-        <div class="val" id="s-resolved">—</div>
-      </div>
-      <div class="summary-item">
-        <label>MTTR (Automated)</label>
-        <div class="val big" id="s-mttr">—</div>
-        <div class="summary-vs" id="s-vs">vs ~47 min manual</div>
       </div>
     </div>
   </div>
@@ -578,6 +583,13 @@ function showTab(name) {
     const names = ['runbook', 'trigger', 'health'];
     btn.classList.toggle('active', names[i] === name);
   });
+}
+
+let codeVisible = true;
+function toggleCode() {
+  codeVisible = !codeVisible;
+  document.getElementById('code-body').style.display = codeVisible ? 'block' : 'none';
+  document.getElementById('btn-toggle-code').textContent = codeVisible ? '▲ Hide' : '▼ Show';
 }
 
 // ── Manual timeline definition ────────────────────────────────────────────────
@@ -655,6 +667,18 @@ function tickManual() {
       }
     }
   });
+
+  // Stop naturally at 47:00
+  if (manualElapsed >= 47 * 60) {
+    clearInterval(manualTimerInterval);
+    manualTimerInterval = null;
+    document.getElementById('manual-timer').classList.add('done');
+    // mark all steps complete
+    MANUAL_STEPS.forEach((s, i) => {
+      const el = document.getElementById(`ms-${i}`);
+      if (el) el.className = 'ms-step complete';
+    });
+  }
 }
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
@@ -690,10 +714,7 @@ async function poll() {
     // Resolved?
     if (d.mttr !== null && d.status === 'healthy' && d.incident_resolved_at) {
       showSummary(d);
-      if (manualTimerInterval) {
-        clearInterval(manualTimerInterval);
-        document.getElementById('manual-timer').classList.add('done');
-      }
+      // manual timer keeps running — stops naturally at 47:00 in tickManual()
     }
 
   } catch (e) {
