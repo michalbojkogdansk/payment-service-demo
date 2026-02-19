@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💳 payment-service — Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --blue: #58a6ff;
+      --text: #c9d1d9;
+      --muted: #8b949e;
+      --font: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    header h1 { font-size: 1.1rem; color: var(--text); }
+    header h1 span { color: var(--blue); }
+    .api-config { display: flex; gap: 8px; align-items: center; }
+    .api-config input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.75rem;
+      width: 280px;
+    }
+    .btn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .8; }
+    .btn-blue { background: var(--blue); color: #000; }
+    .btn-red  { background: var(--red); color: #fff; }
+    .btn-green{ background: var(--green); color: #000; }
+    .btn-muted{ background: var(--border); color: var(--text); }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      grid-template-rows: auto auto;
+      gap: 16px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* Status */
+    #status-card { grid-column: 1; grid-row: 1; }
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .dot {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.green { background: var(--green); box-shadow: 0 0 12px var(--green); animation: pulse-green 2s infinite; }
+    .dot.red   { background: var(--red);   box-shadow: 0 0 12px var(--red);   animation: pulse-red   1s infinite; }
+    .dot.yellow{ background: var(--yellow);box-shadow: 0 0 12px var(--yellow);animation: pulse-green 1.5s infinite; }
+    @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes pulse-red   { 0%,100%{opacity:1} 50%{opacity:.3} }
+    #status-text { font-size: 1.6rem; font-weight: bold; }
+    .status-meta { font-size: 0.75rem; color: var(--muted); line-height: 1.8; }
+    .status-meta span { color: var(--text); }
+
+    /* Chaos controls */
+    #chaos-card { grid-column: 1; grid-row: 2; }
+    .chaos-select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.78rem;
+      margin-bottom: 10px;
+    }
+    .chaos-select option { background: var(--bg); }
+    .btn-full { width: 100%; padding: 10px; font-size: 0.85rem; }
+    .chaos-hint { font-size: 0.68rem; color: var(--muted); margin-top: 8px; text-align: center; }
+
+    /* Logs */
+    #logs-card { grid-column: 2; grid-row: 1; }
+    .log-list { list-style: none; }
+    .log-item {
+      display: grid;
+      grid-template-columns: 70px 52px 1fr;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: 0.78rem;
+      animation: fadein .4s ease;
+    }
+    @keyframes fadein { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+    .log-ts   { color: var(--muted); }
+    .log-level-INFO  { color: var(--blue); }
+    .log-level-WARN  { color: var(--yellow); }
+    .log-level-ERROR { color: var(--red); font-weight: bold; }
+    .log-level-FATAL { color: var(--red); font-weight: bold; text-decoration: underline; }
+    .log-msg { color: var(--text); }
+
+    /* Runbook */
+    #runbook-card { grid-column: 2; grid-row: 2; }
+    .runbook-idle { color: var(--muted); font-size: 0.82rem; }
+    .runbook-steps { list-style: none; }
+    .rb-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: 0.82rem;
+      animation: fadein .3s ease;
+    }
+    .rb-icon { width: 22px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+    .rb-step-text { color: var(--text); flex: 1; }
+    .rb-step-ts   { color: var(--muted); font-size: 0.7rem; flex-shrink: 0; }
+    .rb-step.running .rb-step-text { color: var(--yellow); }
+    .rb-step.done    .rb-icon::before { content: "✅"; }
+    .rb-step.running .rb-icon::before { content: "⏳"; animation: spin 1s linear infinite; }
+    .rb-step.pending .rb-icon::before { content: "──"; color: var(--muted); }
+    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+    .rb-detail { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+
+    /* Incident summary */
+    #summary-card {
+      grid-column: 1 / -1;
+      display: none;
+      border-color: var(--green);
+    }
+    #summary-card.visible { display: block; animation: fadein .5s ease; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .summary-item label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .summary-item .val  { font-size: 1.1rem; color: var(--text); }
+    .summary-item .val.big { font-size: 1.8rem; color: var(--green); }
+    .summary-vs { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+    /* Manual timeline */
+    #manual-card {
+      grid-column: 1 / -1;
+      display: none;
+      border-color: rgba(248,81,73,.35);
+    }
+    #manual-card.visible { display: block; animation: fadein .4s ease; }
+    .manual-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .manual-timer {
+      font-size: 1.4rem;
+      color: var(--red);
+      font-variant-numeric: tabular-nums;
+    }
+    .manual-timer.done { color: var(--muted); }
+    .manual-steps { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .ms-step {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      transition: background .3s;
+    }
+    .ms-step.pending  { color: var(--muted); }
+    .ms-step.active   { background: rgba(248,81,73,.12); color: var(--text); }
+    .ms-step.complete { background: rgba(248,81,73,.06); color: var(--muted); text-decoration: line-through; }
+    .ms-time { color: var(--red); font-variant-numeric: tabular-nums; }
+    .ms-step.pending .ms-time { color: var(--muted); }
+
+    /* Connection status */
+    #conn-bar {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    #conn-bar.err { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>💳 <span>payment-service</span> — Live Demo Dashboard</h1>
+  <div class="api-config">
+    <input id="api-url" type="text" placeholder="https://your-api.onrender.com" />
+    <button class="btn btn-blue" onclick="saveApiUrl()">Connect</button>
+  </div>
+</header>
+
+<div id="conn-bar">⬤ Not connected — enter API URL above</div>
+
+<div class="grid">
+
+  <!-- STATUS -->
+  <div class="card" id="status-card">
+    <div class="card-title">Service Status</div>
+    <div class="status-indicator">
+      <div class="dot green" id="status-dot"></div>
+      <div id="status-text">HEALTHY</div>
+    </div>
+    <div class="status-meta">
+      Uptime: <span id="uptime">—</span><br>
+      Last poll: <span id="last-poll">—</span>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div class="card" id="logs-card">
+    <div class="card-title">Live Logs <span style="color:var(--muted);font-size:.65rem">(last 5)</span></div>
+    <ul class="log-list" id="log-list">
+      <li class="log-item"><span class="log-ts">—</span><span class="log-level-INFO">INFO</span><span class="log-msg">Waiting for connection...</span></li>
+    </ul>
+  </div>
+
+  <!-- CHAOS CONTROLS -->
+  <div class="card" id="chaos-card">
+    <div class="card-title">Chaos Controls <span style="color:var(--muted);font-size:.65rem">(presenter only)</span></div>
+    <select class="chaos-select" id="chaos-mode">
+      <option value="connection_pool">💀 Connection Pool Exhausted</option>
+      <option value="timeout">⏱️ Downstream Timeout</option>
+      <option value="random_crash">💥 Service Panic / Crash</option>
+    </select>
+    <button class="btn btn-red btn-full" id="btn-chaos" onclick="triggerChaos()">🚨 Trigger Chaos</button>
+    <div style="margin-top:8px">
+      <button class="btn btn-muted btn-full" onclick="resetService()">↺ Reset Service</button>
+    </div>
+    <div class="chaos-hint">Runbook auto-fires after ~8 seconds</div>
+  </div>
+
+  <!-- RUNBOOK -->
+  <div class="card" id="runbook-card">
+    <div class="card-title">🤖 Automated Runbook</div>
+    <div class="runbook-idle" id="runbook-idle">── Watching for incidents...</div>
+    <ul class="runbook-steps" id="runbook-steps" style="display:none"></ul>
+  </div>
+
+  <!-- MANUAL TIMELINE -->
+  <div class="card" id="manual-card">
+    <div class="manual-header">
+      <div>
+        <div class="card-title" style="margin-bottom:4px">⏱️ What Would Happen Manually</div>
+        <div style="font-size:.72rem;color:var(--muted)">Average manual MTTR: <strong style="color:var(--red)">47 minutes</strong></div>
+      </div>
+      <div class="manual-timer" id="manual-timer">00:00</div>
+    </div>
+    <ul class="manual-steps" id="manual-steps"></ul>
+  </div>
+
+  <!-- INCIDENT SUMMARY -->
+  <div class="card" id="summary-card">
+    <div class="card-title" style="color:var(--green)">✅ Incident Resolved</div>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <label>Root Cause</label>
+        <div class="val" id="s-root">—</div>
+      </div>
+      <div class="summary-item">
+        <label>Detected</label>
+        <div class="val" id="s-detected">—</div>
+      </div>
+      <div class="summary-item">
+        <label>Resolved</label>
+        <div class="val" id="s-resolved">—</div>
+      </div>
+      <div class="summary-item">
+        <label>MTTR (Automated)</label>
+        <div class="val big" id="s-mttr">—</div>
+        <div class="summary-vs" id="s-vs">vs ~47 min manual</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+
+let API_URL = localStorage.getItem('payment_demo_api') || '';
+document.getElementById('api-url').value = API_URL;
+
+function saveApiUrl() {
+  API_URL = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+  localStorage.setItem('payment_demo_api', API_URL);
+  poll();
+}
+
+// ── Manual timeline definition ────────────────────────────────────────────────
+
+const MANUAL_STEPS = [
+  { time: 0,   label: 'On-call engineer gets paged'          },
+  { time: 120, label: 'Wakes up, finds laptop'               },
+  { time: 300, label: 'Logs into VPN + systems'              },
+  { time: 480, label: 'Opens monitoring dashboard'           },
+  { time: 900, label: 'Reads through logs manually'          },
+  { time: 1380,label: 'Identifies root cause'                },
+  { time: 1860,label: 'Executes fix manually'                },
+  { time: 2280,label: 'Verifies recovery'                    },
+  { time: 2640,label: 'Writes incident report'               },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let incidentStartReal = null;  // real Date.now() when chaos started
+let manualTimerInterval = null;
+let manualDone = false;
+let lastStatus = null;
+
+function fmtTime(secs) {
+  const m = String(Math.floor(secs / 60)).padStart(2, '0');
+  const s = String(secs % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function fmtUptime(secs) {
+  if (secs < 60) return `${secs}s`;
+  if (secs < 3600) return `${Math.floor(secs/60)}m ${secs%60}s`;
+  return `${Math.floor(secs/3600)}h ${Math.floor((secs%3600)/60)}m`;
+}
+
+// ── Manual Timeline ───────────────────────────────────────────────────────────
+
+function startManualTimeline() {
+  document.getElementById('manual-card').classList.add('visible');
+  buildManualSteps();
+  if (manualTimerInterval) clearInterval(manualTimerInterval);
+  manualDone = false;
+  manualTimerInterval = setInterval(tickManual, 1000);
+}
+
+function buildManualSteps() {
+  const ul = document.getElementById('manual-steps');
+  ul.innerHTML = '';
+  MANUAL_STEPS.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = 'ms-step pending';
+    li.id = `ms-${i}`;
+    li.innerHTML = `<span class="ms-time">${fmtTime(s.time)}</span><span>${s.label}</span>`;
+    ul.appendChild(li);
+  });
+}
+
+function tickManual() {
+  if (!incidentStartReal) return;
+  const elapsed = Math.floor((Date.now() - incidentStartReal) / 1000);
+  document.getElementById('manual-timer').textContent = fmtTime(elapsed);
+
+  MANUAL_STEPS.forEach((s, i) => {
+    const el = document.getElementById(`ms-${i}`);
+    if (!el) return;
+    if (elapsed >= s.time) {
+      const next = MANUAL_STEPS[i + 1];
+      if (next && elapsed >= next.time) {
+        el.className = 'ms-step complete';
+      } else {
+        el.className = 'ms-step active';
+      }
+    }
+  });
+}
+
+// ── Poll ──────────────────────────────────────────────────────────────────────
+
+async function poll() {
+  if (!API_URL) return;
+  try {
+    const res = await fetch(`${API_URL}/state`);
+    const d = await res.json();
+
+    document.getElementById('conn-bar').textContent = `⬤ Connected to ${API_URL}`;
+    document.getElementById('conn-bar').classList.remove('err');
+    document.getElementById('last-poll').textContent = new Date().toLocaleTimeString();
+
+    // Status
+    updateStatus(d.status);
+    document.getElementById('uptime').textContent = fmtUptime(d.uptime);
+
+    // Logs
+    updateLogs(d.logs);
+
+    // Chaos just started?
+    if (d.status !== 'healthy' && lastStatus === 'healthy') {
+      incidentStartReal = Date.now();
+      startManualTimeline();
+      document.getElementById('summary-card').classList.remove('visible');
+    }
+    lastStatus = d.status;
+
+    // Runbook
+    updateRunbook(d.runbook_steps, d.runbook_running);
+
+    // Resolved?
+    if (d.mttr !== null && d.status === 'healthy' && d.incident_resolved_at) {
+      showSummary(d);
+      if (manualTimerInterval) {
+        clearInterval(manualTimerInterval);
+        document.getElementById('manual-timer').classList.add('done');
+      }
+    }
+
+  } catch (e) {
+    document.getElementById('conn-bar').textContent = `⬤ Cannot reach ${API_URL} — ${e.message}`;
+    document.getElementById('conn-bar').classList.add('err');
+  }
+}
+
+function updateStatus(status) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+
+  dot.className = 'dot';
+  if (status === 'healthy') {
+    dot.classList.add('green');
+    text.textContent = 'HEALTHY';
+    text.style.color = 'var(--green)';
+  } else if (status === 'unhealthy') {
+    dot.classList.add('red');
+    text.textContent = 'UNHEALTHY';
+    text.style.color = 'var(--red)';
+  } else {
+    dot.classList.add('yellow');
+    text.textContent = 'RECOVERING';
+    text.style.color = 'var(--yellow)';
+  }
+}
+
+function updateLogs(logs) {
+  if (!logs || !logs.length) return;
+  const ul = document.getElementById('log-list');
+  ul.innerHTML = '';
+  [...logs].reverse().forEach(log => {
+    const li = document.createElement('li');
+    li.className = 'log-item';
+    li.innerHTML = `
+      <span class="log-ts">${log.timestamp}</span>
+      <span class="log-level-${log.level}">${log.level}</span>
+      <span class="log-msg">${log.message}</span>`;
+    ul.appendChild(li);
+  });
+}
+
+function updateRunbook(steps, running) {
+  const idle  = document.getElementById('runbook-idle');
+  const ul    = document.getElementById('runbook-steps');
+
+  if (!steps || steps.length === 0) {
+    idle.style.display = 'block';
+    ul.style.display = 'none';
+    return;
+  }
+
+  idle.style.display = 'none';
+  ul.style.display = 'block';
+  ul.innerHTML = '';
+
+  steps.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = `rb-step ${s.status}`;
+    li.innerHTML = `
+      <span class="rb-icon"></span>
+      <div>
+        <div class="rb-step-text">[${i+1}/5] ${s.step}</div>
+        ${s.detail ? `<div class="rb-detail">→ ${s.detail}</div>` : ''}
+      </div>
+      <span class="rb-step-ts">${s.ts}</span>`;
+    ul.appendChild(li);
+  });
+}
+
+function showSummary(d) {
+  const card = document.getElementById('summary-card');
+  card.classList.add('visible');
+
+  document.getElementById('s-root').textContent = d.root_cause || '—';
+
+  const detectedDate = new Date(d.incident_started_at * 1000);
+  const resolvedDate = new Date(d.incident_resolved_at * 1000);
+  document.getElementById('s-detected').textContent = detectedDate.toLocaleTimeString();
+  document.getElementById('s-resolved').textContent = resolvedDate.toLocaleTimeString();
+
+  const mttr = d.mttr;
+  const manualSec = 47 * 60;
+  const speedup = Math.round(manualSec / mttr);
+  document.getElementById('s-mttr').textContent = `${mttr}s`;
+  document.getElementById('s-vs').textContent = `vs ~47 min manually — ${speedup}× faster`;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+async function triggerChaos() {
+  if (!API_URL) { alert('Enter API URL first'); return; }
+  const mode = document.getElementById('chaos-mode').value;
+  await fetch(`${API_URL}/admin/chaos`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ mode, auto_runbook_delay: 8 })
+  });
+  poll();
+}
+
+async function resetService() {
+  if (!API_URL) { alert('Enter API URL first'); return; }
+  await fetch(`${API_URL}/admin/reset`, { method: 'POST' });
+  incidentStartReal = null;
+  manualDone = false;
+  if (manualTimerInterval) clearInterval(manualTimerInterval);
+  document.getElementById('manual-card').classList.remove('visible');
+  document.getElementById('summary-card').classList.remove('visible');
+  document.getElementById('manual-timer').classList.remove('done');
+  document.getElementById('runbook-idle').style.display = 'block';
+  document.getElementById('runbook-steps').style.display = 'none';
+  lastStatus = null;
+  poll();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+setInterval(poll, 3000);
+if (API_URL) poll();
+</script>
+</body>
+</html>
