@@ -391,7 +391,7 @@
         <button class="btn btn-muted" id="btn-toggle-code" onclick="toggleCode()" style="font-size:0.72rem;padding:4px 10px">▲ Hide</button>
       </div>
     </div>
-    <div id="code-body">
+    <div id="code-body" style="display:none">
       <div class="code-window">
         <pre id="code-runbook"><code class="language-python"># runbook.py — automated incident response
 # Auto-triggered when health check fails for > 8 seconds
@@ -585,7 +585,7 @@ function showTab(name) {
   });
 }
 
-let codeVisible = true;
+let codeVisible = false;
 function toggleCode() {
   codeVisible = !codeVisible;
   document.getElementById('code-body').style.display = codeVisible ? 'block' : 'none';
