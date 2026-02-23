@@ -1109,39 +1109,64 @@ function renderChallengeResults(r) {
   document.getElementById('res-votes').textContent = r.total_votes;
 }
 
-async function startChallenge() {
-  if (!API_URL) {
-    document.getElementById('api-url').focus();
-    document.getElementById('api-url').style.outline = '2px solid var(--red)';
-    setTimeout(() => document.getElementById('api-url').style.outline = '', 2000);
-    alert('Wpisz URL API u góry strony i kliknij Connect');
-    return;
+async function apiPost(path) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const r = await fetch(`${API_URL}${path}`, { method: 'POST', signal: ctrl.signal });
+    clearTimeout(t);
+    return r;
+  } catch(e) {
+    clearTimeout(t);
+    throw e;
   }
+}
+
+async function startChallenge() {
+  const btn = document.querySelector('.ch-controls .btn-green');
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Starting...';
+  btn.disabled = true;
+
   document.getElementById('ch-results-card').classList.remove('visible');
   document.getElementById('ch-reveal-box').classList.remove('visible');
   document.getElementById('ch-vote-bars').innerHTML = '<div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>';
   lastChallengeStep = -99;
-  await fetch(`${API_URL}/challenge/start`, { method: 'POST' });
+
+  try {
+    await apiPost('/challenge/start');
+  } catch(e) {
+    btn.textContent = orig;
+    btn.disabled = false;
+    const msg = e.name === 'AbortError'
+      ? '⚠️ Server timeout — Render may be waking up (free tier). Try again in 30s.'
+      : `⚠️ Cannot reach API: ${e.message}`;
+    document.getElementById('ch-situation').textContent = msg;
+    return;
+  }
+
+  btn.textContent = orig;
+  btn.disabled = false;
   generateQR();
   pollChallenge();
 }
 
 async function revealAnswer() {
   if (!API_URL) return;
-  await fetch(`${API_URL}/challenge/reveal`, { method: 'POST' });
+  try { await apiPost('/challenge/reveal'); } catch(e) {}
   pollChallenge();
 }
 
 async function nextStep() {
   if (!API_URL) return;
-  await fetch(`${API_URL}/challenge/next`, { method: 'POST' });
+  try { await apiPost('/challenge/next'); } catch(e) {}
   document.getElementById('ch-reveal-box').classList.remove('visible');
   pollChallenge();
 }
 
 async function resetChallenge() {
   if (!API_URL) return;
-  await fetch(`${API_URL}/challenge/reset`, { method: 'POST' });
+  try { await apiPost('/challenge/reset'); } catch(e) {}
   lastChallengeStep = -99;
   document.getElementById('ch-step-num').textContent = '—';
   document.getElementById('ch-timer').textContent = '——:——';
