@@ -700,6 +700,9 @@ Participants scan the QR code on the right with their phones.</div>
     <div class="aud-title">🎮 Live Challenge</div>
     <div class="aud-step-label" id="aud-step-label">Waiting for presenter...</div>
   </div>
+  <div id="aud-status-bar" style="font-size:0.7rem;text-align:center;padding:4px 12px;color:var(--muted);background:rgba(255,255,255,0.04);border-bottom:1px solid var(--border);">
+    🔄 Connecting to server...
+  </div>
 
   <div class="aud-situation" id="aud-situation"><span class="aud-waiting-text">Waiting for presenter to start the challenge...</span></div>
 
@@ -1186,13 +1189,35 @@ function initAudienceMode() {
   pollAudience();
 }
 
+let audienceRetries = 0;
+
 async function pollAudience() {
-  if (!API_URL) return;
+  if (!API_URL) {
+    setAudienceStatus('⚠️ No API URL — invalid QR code', 'error');
+    return;
+  }
   try {
-    const res = await fetch(`${API_URL}/challenge/state`);
-    const d   = await res.json();
+    const res = await fetch(`${API_URL}/challenge/state`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    audienceRetries = 0;
+    setAudienceStatus('✅ Connected', 'ok');
     renderAudience(d);
-  } catch (e) {}
+  } catch (e) {
+    audienceRetries++;
+    if (audienceRetries <= 3) {
+      setAudienceStatus(`🔄 Connecting to server... (${audienceRetries})`, 'warn');
+    } else {
+      setAudienceStatus(`⚠️ Server unreachable — retrying... (it may be waking up)`, 'error');
+    }
+  }
+}
+
+function setAudienceStatus(msg, type) {
+  const bar = document.getElementById('aud-status-bar');
+  if (!bar) return;
+  bar.textContent = msg;
+  bar.style.color = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--yellow)';
 }
 
 function renderAudience(d) {
@@ -1309,9 +1334,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Polling loops
-setInterval(poll, 3000);
-setInterval(() => { if (currentPage === 'challenge') pollChallenge(); }, 2000);
+// Polling loops — skip presenter polls in audience mode
+const isAudienceMode = getUrlParam('mode') === 'audience';
+if (!isAudienceMode) {
+  setInterval(poll, 3000);
+  setInterval(() => { if (currentPage === 'challenge') pollChallenge(); }, 2000);
+}
 </script>
 </body>
 </html>
