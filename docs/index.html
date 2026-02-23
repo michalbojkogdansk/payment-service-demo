@@ -731,8 +731,14 @@ Participants scan the QR code on the right with their phones.</div>
 // Config & URL helpers
 // ════════════════════════════════════════════════════════════
 
-let API_URL = localStorage.getItem('payment_demo_api') || '';
+const DEFAULT_API = 'https://payment-service-demo.onrender.com';
+let API_URL = localStorage.getItem('payment_demo_api') || DEFAULT_API;
 document.getElementById('api-url').value = API_URL;
+// persist the default immediately so UI reflects connected state
+if (!localStorage.getItem('payment_demo_api')) {
+  localStorage.setItem('payment_demo_api', DEFAULT_API);
+  document.getElementById('btn-disconnect').style.display = 'inline-block';
+}
 
 function getUrlParam(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -1104,7 +1110,13 @@ function renderChallengeResults(r) {
 }
 
 async function startChallenge() {
-  if (!API_URL) { alert('Connect to API first'); return; }
+  if (!API_URL) {
+    document.getElementById('api-url').focus();
+    document.getElementById('api-url').style.outline = '2px solid var(--red)';
+    setTimeout(() => document.getElementById('api-url').style.outline = '', 2000);
+    alert('Wpisz URL API u góry strony i kliknij Connect');
+    return;
+  }
   document.getElementById('ch-results-card').classList.remove('visible');
   document.getElementById('ch-reveal-box').classList.remove('visible');
   document.getElementById('ch-vote-bars').innerHTML = '<div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>';
