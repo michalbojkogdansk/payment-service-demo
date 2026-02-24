@@ -71,7 +71,7 @@ CHALLENGE_STEPS = [
     {
         "id": 1,
         "title": "Step 2 — Reading Logs",
-        "situation": "You open the logs and see:\n\nERROR: Connection pool exhausted (100/100)\nWARN:  Retry 3/3 failed — connections available\nERROR: Payment rejected — cannot acquire DB connection\n\nWhat is the root cause?",
+        "situation": "You open the logs and see:\n\nERROR: Connection pool exhausted (100/100)\nWARN:  Retry 3/3 failed — no connections available\nERROR: Payment rejected — cannot acquire DB connection\n\nWhat is the root cause?",
         "options": {
             "A": "Network connectivity failure",
             "B": "Connection pool exhausted — too many open DB connections",
@@ -163,7 +163,7 @@ CHALLENGE_STEPS = [
             "D": "Yes — notify the team right now"
         },
         "correct": "B",
-        "hint": "Services often flap after restart — a single 200 OK can be a fluke",
+        "hint": "Services often flap after restart — one 200 OK can be a fluke",
         "explanation": "3 consecutive healthy responses is a reasonable signal. 1 is not enough."
     },
     {
@@ -229,7 +229,7 @@ def log_generator():
             if state.chaos_mode == "connection_pool":
                 msgs = [
                     "ERROR: Connection pool exhausted (100/100 connections in use)",
-                    "WARN: Retry 3/3 failed — connections available",
+                    "WARN: Retry 3/3 failed — no connections available",
                     "ERROR: DB timeout after 30s — connection pool saturated",
                     "ERROR: Payment rejected — cannot acquire DB connection",
                     "WARN: Queue depth: 847 pending requests",
@@ -306,7 +306,7 @@ def run_runbook():
 
     state.runbook_running = False
 
-# ── Service Endpoints ────────────────────────────────────────────────────────
+# ── Service Endpoints ─────────────────────────────────────────────────────────
 
 @app.get("/health")
 def health():
@@ -392,7 +392,7 @@ def get_challenge_state():
 
     current_step_data = None
     if 0 <= challenge.step < len(CHALLENGE_STEPS):
-        s = CHAMLENGE_STEPR[challenge.step]
+        s = CHALLENGE_STEPS[challenge.step]
         votes = challenge.votes.get(challenge.step, {"A": 0, "B": 0, "C": 0, "D": 0})
         total_votes = sum(votes.values())
         is_revealed = challenge.step in challenge.revealed
@@ -472,7 +472,7 @@ def reveal_answer():
 
     votes = challenge.votes.get(challenge.step, {"A": 0, "B": 0, "C": 0, "D": 0})
     total = sum(votes.values())
-    correct = CHAMLENGE_STEPR[challenge.step]["correct"]
+    correct = CHALLENGE_STEPS[challenge.step]["correct"]
 
     if total > 0:
         majority = max(votes, key=lambda k: votes[k])
