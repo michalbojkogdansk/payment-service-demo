@@ -225,14 +225,13 @@
 <header id="main-header">
   <h1>🎮 <span>Live Challenge</span> — Incident Response</h1>
   <div class="api-config">
-    <input id="api-url" type="text" placeholder="https://your-api.onrender.com" />
-    <button class="btn btn-blue" onclick="saveApiUrl()">Connect</button>
+    <button class="btn btn-blue" id="btn-connect" onclick="connect()">Connect</button>
     <button class="btn btn-muted" id="btn-disconnect" onclick="disconnect()" style="display:none">✕ Disconnect</button>
     <a class="btn btn-muted" href="index.html">← Dashboard</a>
   </div>
 </header>
 
-<div id="conn-bar">⬤ Not connected — enter API URL above</div>
+<div id="conn-bar">⬤ Not connected</div>
 
 <!-- ════════════════════════════════════════════════════════════
      PRESENTER VIEW
@@ -349,7 +348,7 @@ Participants scan the QR code on the right with their phones.</div>
 // ════════════════════════════════════════════════════════════
 
 const DEFAULT_API = 'https://payment-service-demo.onrender.com';
-let API_URL = localStorage.getItem('payment_demo_api') || DEFAULT_API;
+let API_URL = '';
 
 function getUrlParam(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -357,30 +356,23 @@ function getUrlParam(name) {
 
 const isAudienceMode = getUrlParam('mode') === 'audience';
 
-// Init API from URL param (audience) or localStorage (presenter)
+// Audience mode: get API from URL param
 if (isAudienceMode) {
   const apiParam = getUrlParam('api');
   if (apiParam) API_URL = decodeURIComponent(apiParam);
-} else {
-  document.getElementById('api-url').value = API_URL;
-  if (!localStorage.getItem('payment_demo_api')) {
-    localStorage.setItem('payment_demo_api', DEFAULT_API);
-    document.getElementById('btn-disconnect').style.display = 'inline-block';
-  }
 }
 
-function saveApiUrl() {
-  API_URL = document.getElementById('api-url').value.trim().replace(/\/$/, '');
-  localStorage.setItem('payment_demo_api', API_URL);
-  document.getElementById('btn-disconnect').style.display = API_URL ? 'inline-block' : 'none';
+function connect() {
+  API_URL = DEFAULT_API;
+  document.getElementById('btn-connect').style.display = 'none';
+  document.getElementById('btn-disconnect').style.display = 'inline-block';
   updateConnBar('connecting');
   pollChallenge();
 }
 
 function disconnect() {
   API_URL = '';
-  localStorage.removeItem('payment_demo_api');
-  document.getElementById('api-url').value = '';
+  document.getElementById('btn-connect').style.display = 'inline-block';
   document.getElementById('btn-disconnect').style.display = 'none';
   updateConnBar('disconnected');
 }
@@ -395,7 +387,7 @@ function updateConnBar(state, detail) {
     bar.textContent = `⬤ Cannot reach ${API_URL}${detail ? ' — ' + detail : ''}`;
     bar.className = 'err';
   } else if (state === 'disconnected') {
-    bar.textContent = '⬤ Not connected — enter API URL above';
+    bar.textContent = '⬤ Not connected';
     bar.className = '';
   } else {
     bar.textContent = `⬤ Connecting to ${API_URL}...`;
