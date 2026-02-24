@@ -419,19 +419,31 @@ async def monitor_loop(service_url: str):
 // Config & URL helpers
 // ════════════════════════════════════════════════════════════
 
-const DEFAULT_API = 'https://payment-service-demo.onrender.com';
-let API_URL = localStorage.getItem('payment_demo_api') || DEFAULT_API;
-document.getElementById('api-url').value = API_URL;
-if (!localStorage.getItem('payment_demo_api')) {
-  localStorage.setItem('payment_demo_api', DEFAULT_API);
-  document.getElementById('btn-disconnect').style.display = 'inline-block';
+// Convert UTC HH:MM:SS string from server to local time
+function utcTimeToLocal(utcTimeStr) {
+  if (!utcTimeStr) return '';
+  try {
+    const now = new Date();
+    const [h, m, s] = utcTimeStr.split(':').map(Number);
+    const utc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, s));
+    return utc.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+  } catch(e) { return utcTimeStr; }
 }
+
+const DEFAULT_API = 'https://payment-service-demo.onrender.com';
+let API_URL = localStorage.getItem('payment_demo_api') || '';
+document.getElementById('api-url').value = API_URL || DEFAULT_API;
+
+let pollInterval = null;
 
 function saveApiUrl() {
   API_URL = document.getElementById('api-url').value.trim().replace(/\/$/, '');
   localStorage.setItem('payment_demo_api', API_URL);
   document.getElementById('btn-disconnect').style.display = API_URL ? 'inline-block' : 'none';
-  poll();
+  if (API_URL) {
+    poll();
+    if (!pollInterval) pollInterval = setInterval(poll, 3000);
+  }
 }
 
 function disconnect() {
@@ -610,10 +622,12 @@ function updateLogs(logs) {
   const ul = document.getElementById('log-list');
   ul.innerHTML = '';
   [...logs].reverse().forEach(log => {
+    // timestamp from server is UTC HH:MM:SS — convert to local time
+    const localTs = utcTimeToLocal(log.timestamp);
     const li = document.createElement('li');
     li.className = 'log-item';
     li.innerHTML = `
-      <span class="log-ts">${log.timestamp}</span>
+      <span class="log-ts">${localTs}</span>
       <span class="log-level-${log.level}">${log.level}</span>
       <span class="log-msg">${log.message}</span>`;
     ul.appendChild(li);
@@ -688,10 +702,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (API_URL) {
     document.getElementById('btn-disconnect').style.display = 'inline-block';
     poll();
+    setInterval(poll, 3000);
   }
 });
-
-setInterval(poll, 3000);
 </script>
 </body>
 </html>
