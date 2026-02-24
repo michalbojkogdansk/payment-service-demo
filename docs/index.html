@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
       --bg: #0d1117;
@@ -65,6 +64,8 @@
       font-size: 0.78rem;
       cursor: pointer;
       transition: opacity .2s;
+      text-decoration: none;
+      display: inline-block;
     }
     .btn:hover { opacity: .8; }
     .btn-blue   { background: var(--blue);   color: #000; }
@@ -82,30 +83,6 @@
       margin-bottom: 14px;
     }
     #conn-bar.err { color: var(--red); }
-
-    /* ── Tab navigation ──────────────────────────────────── */
-    .tab-nav {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .tab-btn {
-      padding: 8px 22px;
-      border-radius: 7px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      font-family: var(--font);
-      font-size: 0.82rem;
-      cursor: pointer;
-      transition: all .2s;
-    }
-    .tab-btn:hover { color: var(--text); border-color: var(--text); }
-    .tab-btn.active { background: var(--blue); color: #000; border-color: var(--blue); }
-
-    /* ── Pages ───────────────────────────────────────────── */
-    .page { display: none; }
-    .page.active { display: block; }
 
     /* ── Cards ───────────────────────────────────────────── */
     .card {
@@ -227,504 +204,215 @@
     .code-window { background: #0d1117; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
     .code-window pre { margin: 0; padding: 16px; overflow-x: auto; font-size: 0.78rem; line-height: 1.6; }
     .code-window code { font-family: var(--font); }
-
-    /* ── Challenge (Projector View) ──────────────────────── */
-    .ch-topbar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .ch-step-label { font-size: 0.82rem; color: var(--muted); }
-    .ch-step-label strong { color: var(--blue); font-size: 1.1rem; }
-    .ch-timer-big { font-size: 1.5rem; color: var(--text); font-variant-numeric: tabular-nums; flex: 1; }
-    .ch-voters-count { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
-    .ch-controls { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    .ch-grid {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .ch-step-title {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--blue);
-      margin-bottom: 12px;
-    }
-    .ch-situation {
-      font-size: 0.92rem;
-      line-height: 1.75;
-      white-space: pre-wrap;
-      color: var(--text);
-      min-height: 130px;
-    }
-    .ch-reveal-box {
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 8px;
-      background: rgba(63,185,80,.08);
-      border: 1px solid rgba(63,185,80,.25);
-      display: none;
-    }
-    .ch-reveal-box.visible { display: block; animation: fadein .35s ease; }
-    .ch-correct-answer { font-size: 0.9rem; color: var(--green); margin-bottom: 6px; font-weight: bold; }
-    .ch-explanation { font-size: 0.8rem; color: var(--text); line-height: 1.6; margin-bottom: 6px; }
-    .ch-hint { font-size: 0.75rem; color: var(--yellow); }
-
-    /* Vote bars */
-    .vote-row { display: grid; grid-template-columns: 26px 1fr 72px; gap: 8px; align-items: center; margin-bottom: 10px; }
-    .vote-opt-label { font-size: 0.82rem; font-weight: bold; color: var(--muted); }
-    .vote-opt-label.correct { color: var(--green); }
-    .vote-bar-track { height: 24px; background: rgba(255,255,255,.05); border-radius: 5px; overflow: hidden; position: relative; }
-    .vote-bar-fill { height: 100%; background: rgba(88,166,255,.5); border-radius: 5px; transition: width .5s ease; min-width: 0; }
-    .vote-bar-fill.correct-fill { background: rgba(63,185,80,.6); }
-    .vote-bar-track-label { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: rgba(255,255,255,.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 16px); pointer-events: none; }
-    .vote-pct-label { font-size: 0.75rem; color: var(--muted); text-align: right; white-space: nowrap; }
-
-    /* QR section */
-    .ch-qr-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); text-align: center; }
-    #ch-qrcode { display: inline-block; margin: 10px 0; }
-    #ch-qrcode img, #ch-qrcode canvas { border-radius: 6px; }
-    .ch-qr-url { font-size: 0.6rem; color: var(--muted); word-break: break-all; margin-top: 4px; }
-
-    /* Challenge results */
-    #ch-results-card { display: none; border-color: var(--green); margin-top: 0; }
-    #ch-results-card.visible { display: block; animation: fadein .5s ease; }
-    .ch-results-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 14px; }
-    .ch-result-item label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 6px; }
-    .ch-result-item .val { font-size: 1.8rem; color: var(--green); }
-    .ch-result-item .sub { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
-
-    /* ── Audience (Mobile) ───────────────────────────────── */
-    #page-audience { max-width: 480px; margin: 0 auto; padding: 8px; }
-    .aud-header { text-align: center; margin-bottom: 20px; padding-top: 12px; }
-    .aud-title { font-size: 1.2rem; color: var(--blue); margin-bottom: 6px; }
-    .aud-step-label { font-size: 0.78rem; color: var(--muted); }
-    .aud-situation {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      font-size: 0.88rem;
-      line-height: 1.75;
-      white-space: pre-wrap;
-      margin-bottom: 18px;
-      min-height: 80px;
-      color: var(--text);
-    }
-    .aud-waiting-text { color: var(--muted); text-align: center; }
-    .aud-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .vote-btn {
-      padding: 16px 12px;
-      border-radius: 10px;
-      border: 2px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 0.78rem;
-      cursor: pointer;
-      transition: all .2s;
-      text-align: left;
-      line-height: 1.5;
-    }
-    .vote-btn:hover:not(:disabled) { border-color: var(--blue); background: rgba(88,166,255,.08); }
-    .vote-btn.selected { border-color: var(--blue); background: rgba(88,166,255,.12); }
-    .vote-btn.correct  { border-color: var(--green); background: rgba(63,185,80,.12); }
-    .vote-btn.wrong    { border-color: var(--border); opacity: .5; }
-    .vote-btn:disabled { cursor: default; }
-    .opt-letter { font-size: 1.1rem; font-weight: bold; display: block; margin-bottom: 4px; color: var(--blue); }
-    .vote-btn.correct .opt-letter { color: var(--green); }
-    .vote-btn.wrong   .opt-letter { color: var(--muted); }
-    .aud-voted-msg { text-align: center; padding: 12px; border-radius: 8px; background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.2); color: var(--green); font-size: 0.88rem; margin-bottom: 14px; display: none; }
-    .aud-reveal { padding: 14px; border-radius: 8px; background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.2); color: var(--yellow); font-size: 0.82rem; line-height: 1.65; display: none; }
-    .aud-reveal.visible { display: block; animation: fadein .3s ease; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>💳 <span>payment-service</span> — Live Demo</h1>
+  <h1>💳 <span>payment-service</span> — Live Dashboard</h1>
   <div class="api-config">
     <input id="api-url" type="text" placeholder="https://your-api.onrender.com" />
     <button class="btn btn-blue" onclick="saveApiUrl()">Connect</button>
     <button class="btn btn-muted" id="btn-disconnect" onclick="disconnect()" style="display:none">✕ Disconnect</button>
+    <a class="btn btn-purple" href="challenge.html">🎮 Live Challenge →</a>
   </div>
 </header>
 
 <div id="conn-bar">⬤ Not connected — enter API URL above</div>
 
-<!-- ── Tab navigation ──────────────────────────────────────── -->
-<div id="tab-nav" class="tab-nav">
-  <button class="tab-btn active" onclick="switchPage('dashboard')">📊 Dashboard</button>
-  <button class="tab-btn" onclick="switchPage('challenge')">🎮 Live Challenge</button>
-</div>
+<div class="grid">
 
-<!-- ════════════════════════════════════════════════════════════
-     PAGE: DASHBOARD
-     ════════════════════════════════════════════════════════════ -->
-<div id="page-dashboard" class="page active">
-  <div class="grid">
+  <!-- Status card -->
+  <div class="card" id="status-card">
+    <div class="card-title">Service Status</div>
+    <div class="status-indicator">
+      <div class="dot" id="status-dot"></div>
+      <div id="status-text" style="color:var(--muted)">—</div>
+    </div>
+    <div class="status-meta">
+      <div>Uptime: <span id="uptime">—</span></div>
+      <div>Last poll: <span id="last-poll">—</span></div>
+    </div>
+  </div>
 
-    <!-- STATUS -->
-    <div class="card" id="status-card">
-      <div class="card-title">Service Status</div>
-      <div class="status-indicator">
-        <div class="dot green" id="status-dot"></div>
-        <div id="status-text">HEALTHY</div>
+  <!-- Logs card -->
+  <div class="card" id="logs-card">
+    <div class="card-title">Recent Logs</div>
+    <ul class="log-list" id="log-list">
+      <li style="color:var(--muted);font-size:0.8rem">Waiting for data...</li>
+    </ul>
+  </div>
+
+  <!-- Chaos card -->
+  <div class="card" id="chaos-card">
+    <div class="card-title">Chaos Engineering</div>
+    <select class="chaos-select" id="chaos-mode">
+      <option value="connection_pool">Connection Pool Exhaustion</option>
+      <option value="timeout">Request Timeouts</option>
+      <option value="crash">Random Crashes</option>
+    </select>
+    <button class="btn btn-red btn-full" onclick="triggerChaos()">💥 Trigger Chaos</button>
+    <button class="btn btn-muted btn-full" onclick="resetService()" style="margin-top:8px">↺ Reset Service</button>
+    <div class="chaos-hint">Runbook auto-triggers after ~8s</div>
+  </div>
+
+  <!-- Runbook card -->
+  <div class="card" id="runbook-card">
+    <div class="card-title">Automated Runbook</div>
+    <div class="runbook-idle" id="runbook-idle">No active incident — runbook idle</div>
+    <ul class="runbook-steps" id="runbook-steps" style="display:none"></ul>
+  </div>
+
+  <!-- Manual timeline card -->
+  <div class="card" id="manual-card">
+    <div class="manual-header">
+      <div>
+        <div class="card-title" style="margin-bottom:4px">⚡ Manual Recovery Timeline — 47× accelerated</div>
+        <div style="font-size:0.7rem;color:var(--muted)">What a human on-call engineer would be doing right now...</div>
       </div>
-      <div class="status-meta">
-        Uptime: <span id="uptime">—</span><br>
-        Last poll: <span id="last-poll">—</span>
+      <div class="manual-timer" id="manual-timer">00:00</div>
+    </div>
+    <ul class="manual-steps" id="manual-steps"></ul>
+  </div>
+
+  <!-- Summary card -->
+  <div class="card" id="summary-card">
+    <div class="card-title" style="color:var(--green)">✅ Incident Resolved</div>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <label>Root Cause</label>
+        <div class="val" id="s-root">—</div>
       </div>
-    </div>
-
-    <!-- LOGS -->
-    <div class="card" id="logs-card">
-      <div class="card-title">Live Logs <span style="color:var(--muted);font-size:.65rem">(last 5)</span></div>
-      <ul class="log-list" id="log-list">
-        <li class="log-item"><span class="log-ts">—</span><span class="log-level-INFO">INFO</span><span class="log-msg">Waiting for connection...</span></li>
-      </ul>
-    </div>
-
-    <!-- CHAOS CONTROLS -->
-    <div class="card" id="chaos-card">
-      <div class="card-title">Chaos Controls <span style="color:var(--muted);font-size:.65rem">(presenter only)</span></div>
-      <select class="chaos-select" id="chaos-mode">
-        <option value="connection_pool">💀 Connection Pool Exhausted</option>
-        <option value="timeout">⏱️ Downstream Timeout</option>
-        <option value="random_crash">💥 Service Panic / Crash</option>
-      </select>
-      <button class="btn btn-red btn-full" onclick="triggerChaos()">🚨 Trigger Chaos</button>
-      <div style="margin-top:8px">
-        <button class="btn btn-muted btn-full" onclick="resetService()">↺ Reset Service</button>
+      <div class="summary-item">
+        <label>Detected At</label>
+        <div class="val" id="s-detected">—</div>
       </div>
-      <div class="chaos-hint">Runbook auto-fires after ~8 seconds</div>
-    </div>
-
-    <!-- RUNBOOK -->
-    <div class="card" id="runbook-card">
-      <div class="card-title">🤖 Automated Runbook</div>
-      <div class="runbook-idle" id="runbook-idle">── Watching for incidents...</div>
-      <ul class="runbook-steps" id="runbook-steps" style="display:none"></ul>
-    </div>
-
-    <!-- MANUAL TIMELINE -->
-    <div class="card" id="manual-card">
-      <div class="manual-header">
-        <div>
-          <div class="card-title" style="margin-bottom:4px">⏱️ What Would Happen Manually</div>
-          <div style="font-size:.72rem;color:var(--muted)">Average manual MTTR: <strong style="color:var(--red)">47 minutes</strong> &nbsp;<span style="color:var(--yellow);font-size:.68rem">⚡ 47× accelerated</span></div>
-        </div>
-        <div class="manual-timer" id="manual-timer">00:00</div>
+      <div class="summary-item">
+        <label>Resolved At</label>
+        <div class="val" id="s-resolved">—</div>
       </div>
-      <ul class="manual-steps" id="manual-steps"></ul>
-    </div>
-
-    <!-- INCIDENT SUMMARY -->
-    <div class="card" id="summary-card">
-      <div class="card-title" style="color:var(--green)">✅ Incident Resolved</div>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <label>Root Cause</label>
-          <div class="val" id="s-root">—</div>
-        </div>
-        <div class="summary-item">
-          <label>Detected</label>
-          <div class="val" id="s-detected">—</div>
-        </div>
-        <div class="summary-item">
-          <label>Resolved</label>
-          <div class="val" id="s-resolved">—</div>
-        </div>
-        <div class="summary-item">
-          <label>MTTR (Automated)</label>
-          <div class="val big" id="s-mttr">—</div>
-          <div class="summary-vs" id="s-vs">vs ~47 min manual</div>
-        </div>
+      <div class="summary-item">
+        <label>MTTR</label>
+        <div class="val big" id="s-mttr">—</div>
+        <div class="summary-vs" id="s-vs"></div>
       </div>
     </div>
+  </div>
 
-    <!-- CODE WINDOW -->
-    <div class="card" id="code-card" style="grid-column:1/-1">
-      <div class="code-header">
-        <div><div class="card-title" style="margin-bottom:2px">📄 Runbook as Code</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="code-tabs">
-            <button class="code-tab active" onclick="showTab('runbook')">runbook.py</button>
-            <button class="code-tab" onclick="showTab('trigger')">trigger.py</button>
-            <button class="code-tab" onclick="showTab('health')">health_check.py</button>
-          </div>
-          <button class="btn btn-muted" id="btn-toggle-code" onclick="toggleCode()" style="font-size:0.72rem;padding:4px 10px">▼ Show</button>
-        </div>
+  <!-- Code viewer card -->
+  <div class="card" id="code-card">
+    <div class="code-header">
+      <div class="code-tabs">
+        <button class="code-tab active" onclick="showTab('runbook')">runbook.py</button>
+        <button class="code-tab" onclick="showTab('trigger')">trigger.py</button>
+        <button class="code-tab" onclick="showTab('health')">health_check.py</button>
       </div>
-      <div id="code-body" style="display:none">
-        <div class="code-window">
-          <pre id="code-runbook"><code class="language-python"># runbook.py — automated incident response
-# Auto-triggered when health check fails for > 8 seconds
+      <button class="btn btn-muted" id="btn-toggle-code" onclick="toggleCode()">▼ Show</button>
+    </div>
+    <div id="code-body" style="display:none">
+      <div class="code-window">
+        <div id="code-runbook">
+          <pre><code class="language-python">
+# runbook.py — Automated Incident Response
+import asyncio, httpx, logging
+from datetime import datetime
 
-import asyncio, time, httpx, logging
+logger = logging.getLogger(__name__)
 
 STEPS = [
-    "Collect diagnostics & tail logs",
-    "Notify on-call via Slack / PagerDuty",
-    "Attempt service restart",
-    "Verify recovery (health check loop)",
-    "Close incident & write post-mortem",
+    "Detect unhealthy state",
+    "Drain connection pool",
+    "Restart payment processor",
+    "Verify health endpoint",
+    "Send recovery notification",
 ]
 
-async def run_runbook(incident_id: str, service_url: str):
-    started_at = time.time()
-    log = logging.getLogger("runbook")
+async def run_runbook(service_url: str) -> dict:
+    results = []
+    start = datetime.utcnow()
 
-    # ── Step 1: Collect diagnostics ─────────────────────────
-    log.info("[1/5] Fetching last 50 log lines...")
-    logs = await fetch_logs(service_url, last_n=50)
-    root_cause = analyze_logs(logs)          # regex + pattern match
-    log.info(f"  → Root cause detected: {root_cause}")
+    for i, step in enumerate(STEPS):
+        logger.info(f"[{i+1}/5] {step}")
+        await asyncio.sleep(2 + (i * 0.5))  # simulate work
+        results.append({"step": step, "status": "done", "ts": datetime.utcnow().isoformat()})
 
-    # ── Step 2: Notify on-call ───────────────────────────────
-    log.info("[2/5] Sending Slack alert...")
-    await notify_slack(
-        channel="#incidents",
-        message=f"🚨 *{incident_id}* — {root_cause}\n"
-                f"Runbook fired automatically. Attempting fix..."
-    )
+    elapsed = (datetime.utcnow() - start).total_seconds()
+    return {"steps": results, "elapsed_seconds": round(elapsed, 1)}
+          </code></pre>
+        </div>
+        <div id="code-trigger" style="display:none">
+          <pre><code class="language-python">
+# trigger.py — Chaos trigger & runbook dispatcher
+from fastapi import APIRouter
+from pydantic import BaseModel
+import asyncio, random
 
-    # ── Step 3: Restart service ──────────────────────────────
-    log.info("[3/5] Restarting payment-service...")
-    await restart_service(service_url)
-    await asyncio.sleep(3)                   # grace period
+router = APIRouter()
 
-    # ── Step 4: Verify recovery ──────────────────────────────
-    log.info("[4/5] Waiting for healthy response...")
-    healthy = await wait_for_health(service_url, timeout=30, interval=2)
+class ChaosRequest(BaseModel):
+    mode: str = "connection_pool"
+    auto_runbook_delay: int = 8
 
-    if not healthy:
-        log.error("  ✗ Recovery failed — escalating to human")
-        await notify_slack("#incidents", "⚠️ Auto-fix failed. Manual intervention needed.")
-        return
+@router.post("/admin/chaos")
+async def trigger_chaos(req: ChaosRequest):
+    """Inject failure into payment service"""
+    await inject_failure(req.mode)
 
-    # ── Step 5: Close incident ───────────────────────────────
-    mttr = round(time.time() - started_at, 1)
-    log.info(f"[5/5] Incident resolved. MTTR: {mttr}s")
-    await notify_slack(
-        "#incidents",
-        f"✅ *{incident_id}* resolved automatically\n"
-        f"MTTR: *{mttr}s* (vs ~47 min manual = {round(2820/mttr)}× faster)"
-    )
-    await write_postmortem(incident_id, root_cause, mttr)</code></pre>
+    if req.auto_runbook_delay > 0:
+        asyncio.create_task(
+            delayed_runbook(req.auto_runbook_delay)
+        )
 
-          <pre id="code-trigger" style="display:none"><code class="language-python"># trigger.py — watches health endpoint, fires runbook on failure
+    return {"status": "chaos_injected", "mode": req.mode}
 
-import asyncio, time, httpx
-from runbook import run_runbook
+async def delayed_runbook(delay: int):
+    await asyncio.sleep(delay)
+    await run_runbook(auto=True)
+          </code></pre>
+        </div>
+        <div id="code-health" style="display:none">
+          <pre><code class="language-python">
+# health_check.py — Continuous health monitoring
+import asyncio, httpx
+from datetime import datetime
 
-HEALTH_URL     = "https://payment-service.onrender.com/health"
-CHECK_INTERVAL = 3    # seconds between polls
-FAIL_THRESHOLD = 8    # seconds of failure before runbook fires
+HEALTH_ENDPOINT = "/health"
+CHECK_INTERVAL  = 10  # seconds
+MTTR_TARGET     = 30  # seconds
 
-async def watch():
-    failing_since = None
+async def monitor_loop(service_url: str):
+    """Poll health endpoint, track MTTD and MTTR"""
+    incident_start = None
 
     while True:
         try:
-            r = await httpx.AsyncClient().get(HEALTH_URL, timeout=5)
-            if r.status_code == 200:
-                failing_since = None          # reset on success
-            else:
-                raise ValueError(f"HTTP {r.status_code}")
-
-        except Exception as e:
-            if failing_since is None:
-                failing_since = time.time()
-                print(f"⚠️  Health check failed: {e}")
-
-            elapsed = time.time() - failing_since
-            if elapsed >= FAIL_THRESHOLD:
-                print(f"🚨 Service down for {elapsed:.0f}s — firing runbook")
-                failing_since = None          # prevent double-fire
-                asyncio.create_task(
-                    run_runbook(
-                        incident_id=f"INC-{int(time.time())}",
-                        service_url="https://payment-service.onrender.com"
-                    )
+            async with httpx.AsyncClient() as client:
+                r = await client.get(
+                    f"{service_url}{HEALTH_ENDPOINT}",
+                    timeout=5.0
                 )
+            healthy = r.status_code == 200
+
+        except Exception:
+            healthy = False
+
+        if not healthy and incident_start is None:
+            incident_start = datetime.utcnow()
+            await alert_oncall(incident_start)
+
+        elif healthy and incident_start is not None:
+            mttr = (datetime.utcnow() - incident_start).total_seconds()
+            await record_mttr(mttr)
+            incident_start = None
 
         await asyncio.sleep(CHECK_INTERVAL)
-
-if __name__ == "__main__":
-    asyncio.run(watch())</code></pre>
-
-          <pre id="code-health" style="display:none"><code class="language-python"># health_check.py — used by runbook to verify recovery
-
-import asyncio, httpx
-
-async def wait_for_health(
-    url: str,
-    timeout: int = 30,
-    interval: float = 2.0
-) -> bool:
-    """
-    Polls /health every `interval` seconds.
-    Returns True when 200 OK received, False if timeout exceeded.
-    """
-    deadline = asyncio.get_event_loop().time() + timeout
-
-    async with httpx.AsyncClient() as client:
-        while asyncio.get_event_loop().time() < deadline:
-            try:
-                r = await client.get(f"{url}/health", timeout=3)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get("status") == "healthy":
-                        return True
-            except Exception:
-                pass  # still recovering
-
-            await asyncio.sleep(interval)
-
-    return False   # timed out
-
-
-async def fetch_logs(url: str, last_n: int = 50) -> list[dict]:
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{url}/logs?limit={last_n}", timeout=5)
-        return r.json().get("logs", [])
-
-
-def analyze_logs(logs: list[dict]) -> str:
-    """Simple pattern matching to identify root cause."""
-    for log in reversed(logs):
-        msg = log.get("message", "").lower()
-        if "connection pool" in msg:
-            return "Connection pool exhausted"
-        if "timeout" in msg:
-            return "Downstream service timeout"
-        if "panic" in msg or "crash" in msg:
-            return "Service panic / unexpected crash"
-    return "Unknown — see logs"</code></pre>
+          </code></pre>
         </div>
       </div>
     </div>
-
-  </div><!-- /.grid -->
-</div><!-- /#page-dashboard -->
-
-
-<!-- ════════════════════════════════════════════════════════════
-     PAGE: LIVE CHALLENGE (Projector view)
-     ════════════════════════════════════════════════════════════ -->
-<div id="page-challenge" class="page">
-
-  <!-- Controls bar -->
-  <div class="card ch-topbar">
-    <div class="ch-step-label">Step <strong id="ch-step-num">—</strong> / 10</div>
-    <div class="ch-timer-big" id="ch-timer">——:——</div>
-    <div class="ch-voters-count">👥 <span id="ch-voters">0</span> votes</div>
-    <div class="ch-controls">
-      <button class="btn btn-green"  onclick="startChallenge()">▶ Start</button>
-      <button class="btn btn-yellow" onclick="revealAnswer()">💡 Reveal</button>
-      <button class="btn btn-blue"   onclick="nextStep()">Next →</button>
-      <button class="btn btn-muted"  onclick="resetChallenge()">↺ Reset</button>
-    </div>
   </div>
 
-  <!-- Main grid: question left, votes + QR right -->
-  <div class="ch-grid">
-    <!-- Left: situation -->
-    <div class="card">
-      <div class="ch-step-title" id="ch-step-title">Waiting to start...</div>
-      <div class="ch-situation" id="ch-situation">Press ▶ Start to begin the audience challenge.
-
-Participants scan the QR code on the right with their phones.</div>
-      <div class="ch-reveal-box" id="ch-reveal-box">
-        <div class="ch-correct-answer" id="ch-correct-answer"></div>
-        <div class="ch-explanation" id="ch-explanation"></div>
-        <div class="ch-hint" id="ch-hint"></div>
-      </div>
-    </div>
-
-    <!-- Right: votes + QR -->
-    <div class="card">
-      <div class="card-title">Live Votes</div>
-      <div id="ch-vote-bars">
-        <div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>
-      </div>
-      <div class="ch-qr-section">
-        <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📱 Audience — scan to vote</div>
-        <div id="ch-qrcode"></div>
-        <div class="ch-qr-url" id="ch-qr-url">Connect API above, then press ▶ Start</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Results (shown after step 10) -->
-  <div class="card" id="ch-results-card">
-    <div class="card-title" style="color:var(--green)">🎮 Challenge Complete!</div>
-    <div class="ch-results-grid">
-      <div class="ch-result-item">
-        <label>Total Time</label>
-        <div class="val" id="res-time">—</div>
-        <div class="sub">your team's response</div>
-      </div>
-      <div class="ch-result-item">
-        <label>Crowd Accuracy</label>
-        <div class="val" id="res-accuracy">—</div>
-        <div class="sub" id="res-accuracy-sub">steps correct</div>
-      </div>
-      <div class="ch-result-item">
-        <label>Total Votes</label>
-        <div class="val" id="res-votes">—</div>
-        <div class="sub">audience participation</div>
-      </div>
-      <div class="ch-result-item">
-        <label>Runbook as Code</label>
-        <div class="val" style="color:var(--green)">~22s</div>
-        <div class="sub">automated, zero humans woken up</div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /#page-challenge -->
-
-
-<!-- ════════════════════════════════════════════════════════════
-     PAGE: AUDIENCE (Mobile voting — shown via ?mode=audience)
-     ════════════════════════════════════════════════════════════ -->
-<div id="page-audience" class="page">
-  <div class="aud-header">
-    <div class="aud-title">🎮 Live Challenge</div>
-    <div class="aud-step-label" id="aud-step-label">Waiting for presenter...</div>
-  </div>
-  <div id="aud-status-bar" style="font-size:0.7rem;text-align:center;padding:4px 12px;color:var(--muted);background:rgba(255,255,255,0.04);border-bottom:1px solid var(--border);">
-    🔄 Connecting to server...
-  </div>
-
-  <div class="aud-situation" id="aud-situation"><span class="aud-waiting-text">Waiting for presenter to start the challenge...</span></div>
-
-  <div class="aud-btns" id="aud-btns">
-    <button class="vote-btn" id="vbtn-A" onclick="castVote('A')" disabled>
-      <span class="opt-letter">A</span><span id="vlbl-A">—</span>
-    </button>
-    <button class="vote-btn" id="vbtn-B" onclick="castVote('B')" disabled>
-      <span class="opt-letter">B</span><span id="vlbl-B">—</span>
-    </button>
-    <button class="vote-btn" id="vbtn-C" onclick="castVote('C')" disabled>
-      <span class="opt-letter">C</span><span id="vlbl-C">—</span>
-    </button>
-    <button class="vote-btn" id="vbtn-D" onclick="castVote('D')" disabled>
-      <span class="opt-letter">D</span><span id="vlbl-D">—</span>
-    </button>
-  </div>
-
-  <div id="aud-voted-msg" class="aud-voted-msg">✅ Vote recorded! Waiting for result...</div>
-  <div id="aud-reveal" class="aud-reveal"></div>
-</div>
-
+</div><!-- /.grid -->
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -734,14 +422,9 @@ Participants scan the QR code on the right with their phones.</div>
 const DEFAULT_API = 'https://payment-service-demo.onrender.com';
 let API_URL = localStorage.getItem('payment_demo_api') || DEFAULT_API;
 document.getElementById('api-url').value = API_URL;
-// persist the default immediately so UI reflects connected state
 if (!localStorage.getItem('payment_demo_api')) {
   localStorage.setItem('payment_demo_api', DEFAULT_API);
   document.getElementById('btn-disconnect').style.display = 'inline-block';
-}
-
-function getUrlParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
 }
 
 function saveApiUrl() {
@@ -770,27 +453,7 @@ function disconnect() {
 }
 
 // ════════════════════════════════════════════════════════════
-// Tab / Page switching
-// ════════════════════════════════════════════════════════════
-
-let currentPage = 'dashboard';
-
-function switchPage(name) {
-  ['dashboard', 'challenge'].forEach(p => {
-    document.getElementById(`page-${p}`).classList.toggle('active', p === name);
-  });
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['dashboard', 'challenge'][i] === name);
-  });
-  currentPage = name;
-  if (name === 'challenge') {
-    generateQR();
-    pollChallenge();
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// Code window (dashboard tab)
+// Code window
 // ════════════════════════════════════════════════════════════
 
 function showTab(name) {
@@ -811,7 +474,7 @@ function toggleCode() {
 }
 
 // ════════════════════════════════════════════════════════════
-// Manual timeline (dashboard tab)
+// Manual timeline
 // ════════════════════════════════════════════════════════════
 
 const MANUAL_STEPS = [
@@ -1017,366 +680,18 @@ async function resetService() {
 }
 
 // ════════════════════════════════════════════════════════════
-// Challenge — Projector view
-// ════════════════════════════════════════════════════════════
-
-let lastChallengeStep = -99;
-
-async function pollChallenge() {
-  if (!API_URL || currentPage !== 'challenge') return;
-  try {
-    const res = await fetch(`${API_URL}/challenge/state`);
-    const d = await res.json();
-    renderChallenge(d);
-  } catch (e) {}
-}
-
-function renderChallenge(d) {
-  // Timer
-  if (d.elapsed > 0) {
-    document.getElementById('ch-timer').textContent = '⏱ ' + fmtTime(d.elapsed);
-  }
-
-  // Step counter
-  if (d.done) {
-    document.getElementById('ch-step-num').textContent = '✓';
-  } else if (d.step >= 0) {
-    document.getElementById('ch-step-num').textContent = d.step + 1;
-  }
-
-  // Voter count
-  if (d.current_step) {
-    document.getElementById('ch-voters').textContent = d.current_step.total_votes;
-  }
-
-  // Step content changed?
-  if (d.step !== lastChallengeStep && d.current_step) {
-    lastChallengeStep = d.step;
-    document.getElementById('ch-step-title').textContent = d.current_step.title;
-    document.getElementById('ch-situation').textContent  = d.current_step.situation;
-    document.getElementById('ch-reveal-box').classList.remove('visible');
-  }
-
-  // Vote bars
-  if (d.current_step) renderVoteBars(d.current_step);
-
-  // Answer revealed
-  if (d.current_step && d.current_step.revealed && d.current_step.correct) {
-    const opts = d.current_step.options;
-    document.getElementById('ch-correct-answer').textContent =
-      `✅ Correct: ${d.current_step.correct} — ${opts[d.current_step.correct]}`;
-    document.getElementById('ch-explanation').textContent = d.current_step.explanation || '';
-    document.getElementById('ch-hint').textContent = d.current_step.hint ? `💡 ${d.current_step.hint}` : '';
-    document.getElementById('ch-reveal-box').classList.add('visible');
-  }
-
-  // Done
-  if (d.done && d.results) renderChallengeResults(d.results);
-}
-
-function renderVoteBars(step) {
-  const container = document.getElementById('ch-vote-bars');
-  const votes  = step.votes  || {A:0,B:0,C:0,D:0};
-  const total  = step.total_votes || 0;
-  const correct = step.correct;
-  const opts   = step.options || {};
-
-  container.innerHTML = '';
-  ['A','B','C','D'].forEach(opt => {
-    const count = votes[opt] || 0;
-    const pct   = total > 0 ? Math.round((count / total) * 100) : 0;
-    const isCorrect = correct && opt === correct;
-    const label = opts[opt] || opt;
-
-    const row = document.createElement('div');
-    row.className = 'vote-row';
-    row.innerHTML = `
-      <div class="vote-opt-label ${isCorrect ? 'correct' : ''}">${opt}</div>
-      <div class="vote-bar-track">
-        <div class="vote-bar-fill ${isCorrect ? 'correct-fill' : ''}" style="width:${pct}%"></div>
-        <div class="vote-bar-track-label">${label}</div>
-      </div>
-      <div class="vote-pct-label">${pct}%<span style="color:var(--muted);font-size:.65rem"> (${count})</span></div>`;
-    container.appendChild(row);
-  });
-}
-
-function renderChallengeResults(r) {
-  document.getElementById('ch-results-card').classList.add('visible');
-  document.getElementById('res-time').textContent = fmtTime(r.elapsed);
-  document.getElementById('res-accuracy').textContent = `${r.crowd_accuracy_pct}%`;
-  document.getElementById('res-accuracy-sub').textContent = `${r.crowd_correct} / ${r.total_steps} steps`;
-  document.getElementById('res-votes').textContent = r.total_votes;
-}
-
-async function apiPost(path) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 12000);
-  try {
-    const r = await fetch(`${API_URL}${path}`, { method: 'POST', signal: ctrl.signal });
-    clearTimeout(t);
-    return r;
-  } catch(e) {
-    clearTimeout(t);
-    throw e;
-  }
-}
-
-async function startChallenge() {
-  const btn = document.querySelector('.ch-controls .btn-green');
-  const orig = btn.textContent;
-  btn.textContent = '⏳ Starting...';
-  btn.disabled = true;
-
-  document.getElementById('ch-results-card').classList.remove('visible');
-  document.getElementById('ch-reveal-box').classList.remove('visible');
-  document.getElementById('ch-vote-bars').innerHTML = '<div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>';
-  lastChallengeStep = -99;
-
-  try {
-    await apiPost('/challenge/start');
-  } catch(e) {
-    btn.textContent = orig;
-    btn.disabled = false;
-    const msg = e.name === 'AbortError'
-      ? '⚠️ Server timeout — Render may be waking up (free tier). Try again in 30s.'
-      : `⚠️ Cannot reach API: ${e.message}`;
-    document.getElementById('ch-situation').textContent = msg;
-    return;
-  }
-
-  btn.textContent = orig;
-  btn.disabled = false;
-  generateQR();
-  pollChallenge();
-}
-
-async function revealAnswer() {
-  if (!API_URL) return;
-  try { await apiPost('/challenge/reveal'); } catch(e) {}
-  pollChallenge();
-}
-
-async function nextStep() {
-  if (!API_URL) return;
-  try { await apiPost('/challenge/next'); } catch(e) {}
-  document.getElementById('ch-reveal-box').classList.remove('visible');
-  pollChallenge();
-}
-
-async function resetChallenge() {
-  if (!API_URL) return;
-  try { await apiPost('/challenge/reset'); } catch(e) {}
-  lastChallengeStep = -99;
-  document.getElementById('ch-step-num').textContent = '—';
-  document.getElementById('ch-timer').textContent = '——:——';
-  document.getElementById('ch-voters').textContent = '0';
-  document.getElementById('ch-step-title').textContent = 'Waiting to start...';
-  document.getElementById('ch-situation').textContent = 'Press ▶ Start to begin the audience challenge.\n\nParticipants scan the QR code on the right with their phones.';
-  document.getElementById('ch-vote-bars').innerHTML = '<div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>';
-  document.getElementById('ch-reveal-box').classList.remove('visible');
-  document.getElementById('ch-results-card').classList.remove('visible');
-}
-
-function generateQR() {
-  if (!API_URL) return;
-  const audienceUrl = window.location.origin + window.location.pathname +
-    '?mode=audience&api=' + encodeURIComponent(API_URL);
-  document.getElementById('ch-qr-url').textContent = audienceUrl;
-  const container = document.getElementById('ch-qrcode');
-  container.innerHTML = '';
-  try {
-    new QRCode(container, {
-      text: audienceUrl,
-      width: 140,
-      height: 140,
-      colorDark: '#c9d1d9',
-      colorLight: '#161b22',
-    });
-  } catch(e) {
-    container.textContent = audienceUrl;
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// Audience mode (mobile — ?mode=audience)
-// ════════════════════════════════════════════════════════════
-
-let audienceStep = -99;
-let audienceVoted = false;
-let audienceMyOption = null;
-
-function initAudienceMode() {
-  // Apply API from URL param
-  const apiParam = getUrlParam('api');
-  if (apiParam) API_URL = decodeURIComponent(apiParam);
-
-  // Hide presenter UI
-  document.getElementById('tab-nav').style.display = 'none';
-  const hdr = document.querySelector('header');
-  if (hdr) hdr.style.display = 'none';
-  document.getElementById('conn-bar').style.display = 'none';
-
-  // Show audience page only
-  document.getElementById('page-dashboard').classList.remove('active');
-  document.getElementById('page-challenge').classList.remove('active');
-  document.getElementById('page-audience').classList.add('active');
-
-  setInterval(pollAudience, 2000);
-  pollAudience();
-}
-
-let audienceRetries = 0;
-
-async function pollAudience() {
-  if (!API_URL) {
-    setAudienceStatus('⚠️ No API URL — invalid QR code', 'error');
-    return;
-  }
-  try {
-    const res = await fetch(`${API_URL}/challenge/state`, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const d = await res.json();
-    audienceRetries = 0;
-    setAudienceStatus('✅ Connected', 'ok');
-    renderAudience(d);
-  } catch (e) {
-    audienceRetries++;
-    if (audienceRetries <= 3) {
-      setAudienceStatus(`🔄 Connecting to server... (${audienceRetries})`, 'warn');
-    } else {
-      setAudienceStatus(`⚠️ Server unreachable — retrying... (it may be waking up)`, 'error');
-    }
-  }
-}
-
-function setAudienceStatus(msg, type) {
-  const bar = document.getElementById('aud-status-bar');
-  if (!bar) return;
-  bar.textContent = msg;
-  bar.style.color = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--yellow)';
-}
-
-function renderAudience(d) {
-  const sitEl   = document.getElementById('aud-situation');
-  const stepLbl = document.getElementById('aud-step-label');
-
-  if (!d.active && !d.done) {
-    stepLbl.textContent = 'Waiting for presenter...';
-    sitEl.innerHTML = '<span class="aud-waiting-text">Waiting for presenter to start the challenge...</span>';
-    disableVoteBtns();
-    return;
-  }
-
-  if (d.done) {
-    stepLbl.textContent = '✅ Challenge complete — thanks for playing!';
-    sitEl.innerHTML = '<span class="aud-waiting-text">The challenge has ended. Thanks for your votes!</span>';
-    disableVoteBtns();
-    return;
-  }
-
-  const step = d.current_step;
-  if (!step) return;
-
-  stepLbl.textContent = `Step ${d.step + 1} / ${d.total_steps}`;
-  sitEl.textContent = step.situation;
-
-  // Update button labels
-  ['A','B','C','D'].forEach(opt => {
-    document.getElementById(`vlbl-${opt}`).textContent = step.options[opt] || opt;
-  });
-
-  // New step — reset voted state
-  if (d.step !== audienceStep) {
-    audienceStep    = d.step;
-    audienceVoted   = false;
-    audienceMyOption = null;
-    document.getElementById('aud-voted-msg').style.display = 'none';
-    document.getElementById('aud-reveal').classList.remove('visible');
-    enableVoteBtns();
-  }
-
-  // Answer revealed by presenter
-  if (step.revealed && step.correct) {
-    ['A','B','C','D'].forEach(opt => {
-      const btn = document.getElementById(`vbtn-${opt}`);
-      btn.disabled = true;
-      btn.className = 'vote-btn';
-      if (opt === step.correct) {
-        btn.classList.add('correct');
-      } else if (audienceMyOption === opt && opt !== step.correct) {
-        btn.classList.add('wrong');
-      }
-    });
-    const wasRight = audienceVoted && audienceMyOption === step.correct;
-    const revealEl = document.getElementById('aud-reveal');
-    revealEl.innerHTML = wasRight
-      ? `🎉 You got it! <strong>${step.correct}: ${step.options[step.correct]}</strong><br><small style="color:var(--muted)">${step.explanation}</small>`
-      : `✅ Correct: <strong>${step.correct}: ${step.options[step.correct]}</strong><br><small style="color:var(--muted)">${step.explanation}</small>`;
-    revealEl.classList.add('visible');
-  }
-}
-
-function enableVoteBtns() {
-  ['A','B','C','D'].forEach(opt => {
-    const btn = document.getElementById(`vbtn-${opt}`);
-    btn.disabled = false;
-    btn.className = 'vote-btn';
-  });
-}
-
-function disableVoteBtns() {
-  ['A','B','C','D'].forEach(opt => {
-    document.getElementById(`vbtn-${opt}`).disabled = true;
-  });
-}
-
-async function castVote(option) {
-  if (audienceVoted || !API_URL) return;
-  try {
-    const res = await fetch(`${API_URL}/challenge/vote`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ step_id: audienceStep, option })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      audienceVoted    = true;
-      audienceMyOption = option;
-      disableVoteBtns();
-      document.getElementById(`vbtn-${option}`).className = 'vote-btn selected';
-      document.getElementById(`vbtn-${option}`).disabled = true;
-      document.getElementById('aud-voted-msg').style.display = 'block';
-    }
-  } catch (e) {}
-}
-
-// ════════════════════════════════════════════════════════════
 // Init
 // ════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
   hljs.highlightAll();
-
-  // Check if audience mode
-  if (getUrlParam('mode') === 'audience') {
-    initAudienceMode();
-    return;
-  }
-
-  // Normal presenter mode
   if (API_URL) {
     document.getElementById('btn-disconnect').style.display = 'inline-block';
     poll();
   }
 });
 
-// Polling loops — skip presenter polls in audience mode
-const isAudienceMode = getUrlParam('mode') === 'audience';
-if (!isAudienceMode) {
-  setInterval(poll, 3000);
-  setInterval(() => { if (currentPage === 'challenge') pollChallenge(); }, 2000);
-}
+setInterval(poll, 3000);
 </script>
 </body>
 </html>
