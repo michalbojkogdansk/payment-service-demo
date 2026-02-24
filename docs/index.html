@@ -211,14 +211,13 @@
 <header>
   <h1>💳 <span>payment-service</span> — Live Dashboard</h1>
   <div class="api-config">
-    <input id="api-url" type="text" placeholder="https://your-api.onrender.com" />
-    <button class="btn btn-blue" onclick="saveApiUrl()">Connect</button>
+    <button class="btn btn-blue" id="btn-connect" onclick="connect()">Connect</button>
     <button class="btn btn-muted" id="btn-disconnect" onclick="disconnect()" style="display:none">✕ Disconnect</button>
     <a class="btn btn-purple" href="challenge.html">🎮 Live Challenge →</a>
   </div>
 </header>
 
-<div id="conn-bar">⬤ Not connected — enter API URL above</div>
+<div id="conn-bar">⬤ Not connected</div>
 
 <div class="grid">
 
@@ -431,36 +430,32 @@ function utcTimeToLocal(utcTimeStr) {
 }
 
 const DEFAULT_API = 'https://payment-service-demo.onrender.com';
-let API_URL = localStorage.getItem('payment_demo_api') || '';
-document.getElementById('api-url').value = API_URL || DEFAULT_API;
+let API_URL = '';
 
 let pollInterval = null;
 
-function saveApiUrl() {
-  API_URL = document.getElementById('api-url').value.trim().replace(/\/$/, '');
-  localStorage.setItem('payment_demo_api', API_URL);
-  document.getElementById('btn-disconnect').style.display = API_URL ? 'inline-block' : 'none';
-  if (API_URL) {
-    poll();
-    if (!pollInterval) pollInterval = setInterval(poll, 3000);
-  }
+function connect() {
+  API_URL = DEFAULT_API;
+  document.getElementById('btn-connect').style.display = 'none';
+  document.getElementById('btn-disconnect').style.display = 'inline-block';
+  poll();
+  if (!pollInterval) pollInterval = setInterval(poll, 3000);
 }
 
 function disconnect() {
   API_URL = '';
-  localStorage.removeItem('payment_demo_api');
-  document.getElementById('api-url').value = '';
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  document.getElementById('btn-connect').style.display = 'inline-block';
   document.getElementById('btn-disconnect').style.display = 'none';
-  document.getElementById('conn-bar').textContent = '⬤ Not connected — enter API URL above';
-  document.getElementById('conn-bar').classList.remove('err');
-  incidentStartReal = null;
-  manualDone = false;
-  if (manualTimerInterval) clearInterval(manualTimerInterval);
-  document.getElementById('manual-card').classList.remove('visible');
-  document.getElementById('summary-card').classList.remove('visible');
-  document.getElementById('manual-timer').classList.remove('done');
-  document.getElementById('runbook-idle').style.display = 'block';
-  document.getElementById('runbook-steps').style.display = 'none';
+  // Reset status and uptime
+  const dot = document.getElementById('status-dot');
+  dot.style.background = 'var(--muted)';
+  document.getElementById('status-text').textContent = '—';
+  document.getElementById('status-text').style.color = 'var(--muted)';
+  document.getElementById('uptime').textContent = '—';
+  document.getElementById('last-poll').textContent = '—';
+  document.getElementById('conn-bar').textContent = '⬤ Not connected';
+  document.getElementById('conn-bar').className = '';
   lastStatus = null;
 }
 
