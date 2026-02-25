@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
+import os
 import random
 import time
 import threading
@@ -9,11 +10,32 @@ from typing import Optional
 
 app = FastAPI(title="payment-service-demo")
 
+DEMO_SECRET = os.environ.get("DEMO_SECRET", "demo2026")
+
+def require_secret(x_demo_secret: str = Header(default="")):
+    if DEMO_SECRET and x_demo_secret != DEMO_SECRET:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+_runbook_lock = threading.Lock()
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "https://michalbojkogdansk.github.io",
+        "http://localhost:8000",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-Demo-Secret"],
 )
 
 # ── Service State ─────────────────────────────────────────────────────────────
@@ -263,48 +285,49 @@ RUNBOOK_STEPS = [
 ]
 
 def run_runbook():
-    state.runbook_running = True
-    state.runbook_steps = []
-    state.add_log("INFO", "🤖 Runbook triggered automatically")
+    with _runbook_lock:
+        state.runbook_running = True
+        state.runbook_steps = []
+        state.add_log("INFO", "🤖 Runbook triggered automatically")
 
-    for i, step_name in enumerate(RUNBOOK_STEPS):
-        step = {"step": step_name, "status": "running", "ts": datetime.utcnow().strftime("%H:%M:%S")}
-        state.runbook_steps.append(step)
+        for i, step_name in enumerate(RUNBOOK_STEPS):
+            step = {"step": step_name, "status": "running", "ts": datetime.utcnow().strftime("%H:%M:%S")}
+            state.runbook_steps.append(step)
 
-        if i == 0:
-            time.sleep(random.uniform(1.5, 3.5))
-            step["status"] = "done"
-            state.add_log("INFO", f"Runbook [1/5]: {step_name}")
-        elif i == 1:
-            time.sleep(random.uniform(2.0, 5.0))
-            root_cause = {
-                "connection_pool": "Connection pool exhausted (100/100)",
-                "timeout": "Downstream timeout — circuit breaker tripped",
-                "random_crash": "Nil pointer dereference in payment handler",
-            }.get(state.chaos_mode, "Unknown error")
-            step["status"] = "done"
-            step["detail"] = root_cause
-            state.add_log("INFO", f"Root cause identified: {root_cause}")
-        elif i == 2:
-            time.sleep(random.uniform(3.0, 6.0))
-            state.status = "recovering"
-            state.add_log("INFO", "Restarting payment-service...")
-            time.sleep(random.uniform(2.0, 5.0))
-            state.status = "healthy"
-            state.incident_resolved_at = time.time()
-            step["status"] = "done"
-            state.add_log("INFO", "✅ Service restarted successfully — health check PASSED")
-        elif i == 3:
-            time.sleep(random.uniform(1.5, 3.5))
-            step["status"] = "done"
-            state.add_log("INFO", "Recovery verified — payment processing resumed")
-        elif i == 4:
-            time.sleep(random.uniform(0.5, 2.0))
-            mttr = round(state.incident_resolved_at - state.incident_started_at)
-            step["status"] = "done"
-            state.add_log("INFO", f"📨 Incident report: MTTR={mttr}s | Root cause: {state.chaos_mode}")
+            if i == 0:
+                time.sleep(random.uniform(1.5, 3.5))
+                step["status"] = "done"
+                state.add_log("INFO", f"Runbook [1/5]: {step_name}")
+            elif i == 1:
+                time.sleep(random.uniform(2.0, 5.0))
+                root_cause = {
+                    "connection_pool": "Connection pool exhausted (100/100)",
+                    "timeout": "Downstream timeout — circuit breaker tripped",
+                    "random_crash": "Nil pointer dereference in payment handler",
+                }.get(state.chaos_mode, "Unknown error")
+                step["status"] = "done"
+                step["detail"] = root_cause
+                state.add_log("INFO", f"Root cause identified: {root_cause}")
+            elif i == 2:
+                time.sleep(random.uniform(3.0, 6.0))
+                state.status = "recovering"
+                state.add_log("INFO", "Restarting payment-service...")
+                time.sleep(random.uniform(2.0, 5.0))
+                state.status = "healthy"
+                state.incident_resolved_at = time.time()
+                step["status"] = "done"
+                state.add_log("INFO", "✅ Service restarted successfully — health check PASSED")
+            elif i == 3:
+                time.sleep(random.uniform(1.5, 3.5))
+                step["status"] = "done"
+                state.add_log("INFO", "Recovery verified — payment processing resumed")
+            elif i == 4:
+                time.sleep(random.uniform(0.5, 2.0))
+                mttr = round(state.incident_resolved_at - state.incident_started_at)
+                step["status"] = "done"
+                state.add_log("INFO", f"📨 Incident report: MTTR={mttr}s | Root cause: {state.chaos_mode}")
 
-    state.runbook_running = False
+        state.runbook_running = False
 
 # ── Service Endpoints ─────────────────────────────────────────────────────────
 
@@ -345,12 +368,20 @@ def get_state():
         "root_cause": root_cause,
     }
 
+VALID_CHAOS_MODES = {"connection_pool", "timeout", "random_crash"}
+
 class ChaosRequest(BaseModel):
     mode: str = "connection_pool"
     auto_runbook_delay: int = 8
 
+    @validator('mode')
+    def mode_must_be_valid(cls, v):
+        if v not in VALID_CHAOS_MODES:
+            raise ValueError(f"mode must be one of {VALID_CHAOS_MODES}")
+        return v
+
 @app.post("/admin/chaos")
-def trigger_chaos(req: ChaosRequest):
+def trigger_chaos(req: ChaosRequest, _: str = Depends(require_secret)):
     if state.status != "healthy":
         return {"error": "Service is not healthy — reset first"}
     state.status = "unhealthy"
@@ -374,7 +405,7 @@ def trigger_chaos(req: ChaosRequest):
     return {"ok": True, "mode": req.mode}
 
 @app.post("/admin/reset")
-def reset():
+def reset(_: str = Depends(require_secret)):
     state.reset()
     return {"ok": True}
 
@@ -453,7 +484,9 @@ def submit_vote(req: VoteRequest):
 
 
 @app.post("/challenge/start")
-def start_challenge():
+def start_challenge(_: str = Depends(require_secret)):
+    if challenge.active:
+        return {"ok": True, "message": "Already running"}
     challenge.reset()
     challenge.active = True
     challenge.step = 0
@@ -464,7 +497,7 @@ def start_challenge():
 
 
 @app.post("/challenge/reveal")
-def reveal_answer():
+def reveal_answer(_: str = Depends(require_secret)):
     if not challenge.active or challenge.step < 0:
         return {"error": "Not active"}
     if challenge.step in challenge.revealed:
@@ -496,7 +529,7 @@ def reveal_answer():
 
 
 @app.post("/challenge/next")
-def next_step():
+def next_step(_: str = Depends(require_secret)):
     if not challenge.active:
         return {"error": "Not active"}
     # Auto-reveal current step if not yet revealed
@@ -513,6 +546,6 @@ def next_step():
 
 
 @app.post("/challenge/reset")
-def reset_challenge():
+def reset_challenge(_: str = Depends(require_secret)):
     challenge.reset()
     return {"ok": True}
