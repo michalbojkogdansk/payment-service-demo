@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💳</text></svg>">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>💳 payment-service — Live Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
   <style>
     :root {
       --bg: #0d1117;
@@ -105,6 +107,9 @@
       grid-template-columns: 300px 1fr;
       grid-template-rows: auto auto;
       gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
     }
 
     /* Status */
@@ -237,7 +242,7 @@
   <!-- Logs card -->
   <div class="card" id="logs-card">
     <div class="card-title">Recent Logs</div>
-    <ul class="log-list" id="log-list">
+    <ul class="log-list" id="log-list" aria-live="polite">
       <li style="color:var(--muted);font-size:0.8rem">Waiting for data...</li>
     </ul>
   </div>
@@ -418,6 +423,11 @@ async def monitor_loop(service_url: str):
 // Config & URL helpers
 // ════════════════════════════════════════════════════════════
 
+// Named constants
+const MANUAL_DURATION_SEC = 47 * 60;
+const PRESENTER_POLL_MS = 3000;
+const MAX_LOG_ENTRIES = 50;
+
 // Convert UTC HH:MM:SS string from server to local time
 function utcTimeToLocal(utcTimeStr) {
   if (!utcTimeStr) return '';
@@ -430,6 +440,7 @@ function utcTimeToLocal(utcTimeStr) {
 }
 
 const DEFAULT_API = 'https://payment-service-demo.onrender.com';
+const DEMO_SECRET = 'demo2026';
 let API_URL = '';
 
 let pollInterval = null;
@@ -439,7 +450,7 @@ function connect() {
   document.getElementById('btn-connect').style.display = 'none';
   document.getElementById('btn-disconnect').style.display = 'inline-block';
   poll();
-  if (!pollInterval) pollInterval = setInterval(poll, 3000);
+  if (!pollInterval) pollInterval = setInterval(poll, PRESENTER_POLL_MS);
 }
 
 function disconnect() {
@@ -498,7 +509,6 @@ const MANUAL_STEPS = [
 
 let incidentStartReal = null;
 let manualTimerInterval = null;
-let manualDone = false;
 let lastStatus = null;
 
 function fmtTime(secs) {
@@ -516,7 +526,6 @@ function startManualTimeline() {
   document.getElementById('manual-card').classList.add('visible');
   buildManualSteps();
   if (manualTimerInterval) clearInterval(manualTimerInterval);
-  manualDone = false;
   manualTimerInterval = setInterval(tickManual, 1000);
 }
 
@@ -536,7 +545,7 @@ const MANUAL_SPEED = 47;
 function tickManual() {
   if (!incidentStartReal) return;
   const realElapsed = Math.floor((Date.now() - incidentStartReal) / 1000);
-  const manualElapsed = Math.min(realElapsed * MANUAL_SPEED, 47 * 60);
+  const manualElapsed = Math.min(realElapsed * MANUAL_SPEED, MANUAL_DURATION_SEC);
   document.getElementById('manual-timer').textContent = fmtTime(manualElapsed);
 
   MANUAL_STEPS.forEach((s, i) => {
@@ -552,7 +561,7 @@ function tickManual() {
     }
   });
 
-  if (manualElapsed >= 47 * 60) {
+  if (manualElapsed >= MANUAL_DURATION_SEC) {
     clearInterval(manualTimerInterval);
     manualTimerInterval = null;
     document.getElementById('manual-timer').classList.add('done');
@@ -617,14 +626,26 @@ function updateLogs(logs) {
   const ul = document.getElementById('log-list');
   ul.innerHTML = '';
   [...logs].reverse().forEach(log => {
-    // timestamp from server is UTC HH:MM:SS — convert to local time
     const localTs = utcTimeToLocal(log.timestamp);
     const li = document.createElement('li');
     li.className = 'log-item';
-    li.innerHTML = `
-      <span class="log-ts">${localTs}</span>
-      <span class="log-level-${log.level}">${log.level}</span>
-      <span class="log-msg">${log.message}</span>`;
+
+    const tsSpan = document.createElement('span');
+    tsSpan.className = 'log-ts';
+    tsSpan.textContent = localTs;
+
+    const safeLevel = ['INFO','WARN','ERROR','FATAL'].includes(log.level) ? log.level : 'INFO';
+    const lvlSpan = document.createElement('span');
+    lvlSpan.className = `log-level-${safeLevel}`;
+    lvlSpan.textContent = safeLevel;
+
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'log-msg';
+    msgSpan.textContent = log.message;
+
+    li.appendChild(tsSpan);
+    li.appendChild(lvlSpan);
+    li.appendChild(msgSpan);
     ul.appendChild(li);
   });
 }
@@ -640,13 +661,32 @@ function updateRunbook(steps, running) {
   steps.forEach((s, i) => {
     const li = document.createElement('li');
     li.className = `rb-step ${s.status}`;
-    li.innerHTML = `
-      <span class="rb-icon"></span>
-      <div>
-        <div class="rb-step-text">[${i+1}/5] ${s.step}</div>
-        ${s.detail ? `<div class="rb-detail">→ ${s.detail}</div>` : ''}
-      </div>
-      <span class="rb-step-ts">${s.ts}</span>`;
+
+    const icon = document.createElement('span');
+    icon.className = 'rb-icon';
+
+    const content = document.createElement('div');
+
+    const stepText = document.createElement('div');
+    stepText.className = 'rb-step-text';
+    stepText.textContent = `[${i+1}/5] ${s.step}`;
+
+    content.appendChild(stepText);
+
+    if (s.detail) {
+      const detail = document.createElement('div');
+      detail.className = 'rb-detail';
+      detail.textContent = `→ ${s.detail}`;
+      content.appendChild(detail);
+    }
+
+    const tsSpan = document.createElement('span');
+    tsSpan.className = 'rb-step-ts';
+    tsSpan.textContent = s.ts || '';
+
+    li.appendChild(icon);
+    li.appendChild(content);
+    li.appendChild(tsSpan);
     ul.appendChild(li);
   });
 }
@@ -657,27 +697,36 @@ function showSummary(d) {
   document.getElementById('s-detected').textContent = new Date(d.incident_started_at * 1000).toLocaleTimeString();
   document.getElementById('s-resolved').textContent = new Date(d.incident_resolved_at * 1000).toLocaleTimeString();
   const mttr = d.mttr;
-  const speedup = Math.round((47 * 60) / mttr);
+  const speedup = Math.round(MANUAL_DURATION_SEC / mttr);
   document.getElementById('s-mttr').textContent = `${mttr}s`;
   document.getElementById('s-vs').textContent = `vs ~47 min manually — ${speedup}× faster`;
 }
 
 async function triggerChaos() {
   if (!API_URL) { alert('Enter API URL first'); return; }
-  const mode = document.getElementById('chaos-mode').value;
-  await fetch(`${API_URL}/admin/chaos`, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ mode, auto_runbook_delay: 8 })
-  });
+  try {
+    await fetch(`${API_URL}/admin/chaos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Demo-Secret': DEMO_SECRET },
+      body: JSON.stringify({ mode: document.getElementById('chaos-mode').value })
+    });
+  } catch(e) {
+    console.warn('triggerChaos error:', e);
+  }
   poll();
 }
 
 async function resetService() {
   if (!API_URL) { alert('Enter API URL first'); return; }
-  await fetch(`${API_URL}/admin/reset`, { method: 'POST' });
+  try {
+    await fetch(`${API_URL}/admin/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Demo-Secret': DEMO_SECRET }
+    });
+  } catch(e) {
+    console.warn('resetService error:', e);
+  }
   incidentStartReal = null;
-  manualDone = false;
   if (manualTimerInterval) clearInterval(manualTimerInterval);
   document.getElementById('manual-card').classList.remove('visible');
   document.getElementById('summary-card').classList.remove('visible');
@@ -697,7 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (API_URL) {
     document.getElementById('btn-disconnect').style.display = 'inline-block';
     poll();
-    setInterval(poll, 3000);
+    setInterval(poll, PRESENTER_POLL_MS);
   }
 });
 </script>
