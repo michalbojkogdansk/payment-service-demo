@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🎮 Live Challenge — Incident Response</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
       --bg: #0d1117;
@@ -269,7 +271,7 @@ Participants scan the QR code on the right with their phones.</div>
     <!-- Right: votes + QR -->
     <div class="card">
       <div class="card-title">Live Votes</div>
-      <div id="ch-vote-bars">
+      <div id="ch-vote-bars" aria-live="polite">
         <div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>
       </div>
       <div class="ch-qr-section">
@@ -318,7 +320,7 @@ Participants scan the QR code on the right with their phones.</div>
     <div class="aud-title">🎮 Live Challenge</div>
     <div class="aud-step-label" id="aud-step-label">Waiting for presenter...</div>
   </div>
-  <div id="aud-status-bar">🔄 Connecting to server...</div>
+  <div id="aud-status-bar" aria-live="polite">🔄 Connecting to server...</div>
 
   <div class="aud-situation" id="aud-situation"><span class="aud-waiting-text">Waiting for presenter to start the challenge...</span></div>
 
@@ -347,7 +349,12 @@ Participants scan the QR code on the right with their phones.</div>
 // Config & URL helpers
 // ════════════════════════════════════════════════════════════
 
+const AUDIENCE_POLL_MS = 2000;
+const API_TIMEOUT_MS = 12000;
+
 const DEFAULT_API = 'https://payment-service-demo.onrender.com';
+const DEMO_SECRET = 'demo2026';
+const ALLOWED_API_HOSTS = ['payment-service-demo.onrender.com'];
 let API_URL = '';
 
 function getUrlParam(name) {
@@ -356,10 +363,21 @@ function getUrlParam(name) {
 
 const isAudienceMode = getUrlParam('mode') === 'audience';
 
-// Audience mode: get API from URL param
+// Audience mode: get API from URL param with validation
 if (isAudienceMode) {
   const apiParam = getUrlParam('api');
-  if (apiParam) API_URL = decodeURIComponent(apiParam);
+  if (apiParam) {
+    try {
+      const parsed = new URL(decodeURIComponent(apiParam));
+      if (ALLOWED_API_HOSTS.includes(parsed.hostname) && parsed.protocol === 'https:') {
+        API_URL = parsed.origin;
+      } else {
+        console.warn('Blocked untrusted api param:', apiParam);
+      }
+    } catch (e) {
+      console.warn('Invalid api param:', apiParam);
+    }
+  }
 }
 
 function connect() {
@@ -375,6 +393,10 @@ function disconnect() {
   document.getElementById('btn-connect').style.display = 'inline-block';
   document.getElementById('btn-disconnect').style.display = 'none';
   updateConnBar('disconnected');
+  if (window._challengeInterval) {
+    clearInterval(window._challengeInterval);
+    window._challengeInterval = null;
+  }
 }
 
 function updateConnBar(state, detail) {
@@ -466,13 +488,37 @@ function renderVoteBars(step) {
 
     const row = document.createElement('div');
     row.className = 'vote-row';
-    row.innerHTML = `
-      <div class="vote-opt-label ${isCorrect ? 'correct' : ''}">${opt}</div>
-      <div class="vote-bar-track">
-        <div class="vote-bar-fill ${isCorrect ? 'correct-fill' : ''}" style="width:${pct}%"></div>
-        <div class="vote-bar-track-label">${label}</div>
-      </div>
-      <div class="vote-pct-label">${pct}%<span style="color:var(--muted);font-size:.65rem"> (${count})</span></div>`;
+
+    const optLabel = document.createElement('div');
+    optLabel.className = 'vote-opt-label' + (isCorrect ? ' correct' : '');
+    optLabel.textContent = opt;
+
+    const track = document.createElement('div');
+    track.className = 'vote-bar-track';
+
+    const fill = document.createElement('div');
+    fill.className = 'vote-bar-fill' + (isCorrect ? ' correct-fill' : '');
+    fill.style.width = pct + '%';
+
+    const trackLabel = document.createElement('div');
+    trackLabel.className = 'vote-bar-track-label';
+    trackLabel.textContent = label;
+
+    track.appendChild(fill);
+    track.appendChild(trackLabel);
+
+    const pctLabel = document.createElement('div');
+    pctLabel.className = 'vote-pct-label';
+    pctLabel.textContent = `${pct}%`;
+    const countSmall = document.createElement('span');
+    countSmall.style.color = 'var(--muted)';
+    countSmall.style.fontSize = '.65rem';
+    countSmall.textContent = ` (${count})`;
+    pctLabel.appendChild(countSmall);
+
+    row.appendChild(optLabel);
+    row.appendChild(track);
+    row.appendChild(pctLabel);
     container.appendChild(row);
   });
 }
@@ -485,17 +531,15 @@ function renderChallengeResults(r) {
   document.getElementById('res-votes').textContent = r.total_votes;
 }
 
-async function apiPost(path) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 12000);
-  try {
-    const r = await fetch(`${API_URL}${path}`, { method: 'POST', signal: ctrl.signal });
-    clearTimeout(t);
-    return r;
-  } catch(e) {
-    clearTimeout(t);
-    throw e;
-  }
+async function apiPost(path, body = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Demo-Secret': DEMO_SECRET },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS)
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 async function startChallenge() {
@@ -514,7 +558,7 @@ async function startChallenge() {
   } catch(e) {
     btn.textContent = orig;
     btn.disabled = false;
-    const msg = e.name === 'AbortError'
+    const msg = (e.name === 'AbortError' || e.name === 'TimeoutError')
       ? '⚠️ Server timeout — Render may be waking up (free tier). Try again in 30s.'
       : `⚠️ Cannot reach API: ${e.message}`;
     document.getElementById('ch-situation').textContent = msg;
@@ -529,20 +573,34 @@ async function startChallenge() {
 
 async function revealAnswer() {
   if (!API_URL) return;
-  try { await apiPost('/challenge/reveal'); } catch(e) {}
+  try {
+    await apiPost('/challenge/reveal');
+  } catch(e) {
+    console.warn('reveal failed:', e.message);
+    alert('⚠️ Could not reach server. Is the backend running?');
+  }
   pollChallenge();
 }
 
 async function nextStep() {
   if (!API_URL) return;
-  try { await apiPost('/challenge/next'); } catch(e) {}
+  try {
+    await apiPost('/challenge/next');
+  } catch(e) {
+    console.warn('next step failed:', e.message);
+    alert('⚠️ Could not reach server. Is the backend running?');
+  }
   document.getElementById('ch-reveal-box').classList.remove('visible');
   pollChallenge();
 }
 
 async function resetChallenge() {
   if (!API_URL) return;
-  try { await apiPost('/challenge/reset'); } catch(e) {}
+  try {
+    await apiPost('/challenge/reset');
+  } catch(e) {
+    console.warn('reset failed:', e.message);
+  }
   lastChallengeStep = -99;
   document.getElementById('ch-step-num').textContent = '—';
   document.getElementById('ch-timer').textContent = '——:——';
@@ -662,9 +720,24 @@ function renderAudience(d) {
     });
     const wasRight = audienceVoted && audienceMyOption === step.correct;
     const revealEl = document.getElementById('aud-reveal');
-    revealEl.innerHTML = wasRight
-      ? `🎉 You got it! <strong>${step.correct}: ${step.options[step.correct]}</strong><br><small style="color:var(--muted)">${step.explanation}</small>`
-      : `✅ Correct: <strong>${step.correct}: ${step.options[step.correct]}</strong><br><small style="color:var(--muted)">${step.explanation}</small>`;
+    revealEl.innerHTML = '';  // clear first (no user data here)
+
+    const emoji = document.createElement('span');
+    emoji.textContent = wasRight ? '🎉 You got it! ' : '✅ Correct: ';
+
+    const strong = document.createElement('strong');
+    strong.textContent = `${step.correct}: ${step.options[step.correct]}`;
+
+    const br = document.createElement('br');
+
+    const small = document.createElement('small');
+    small.style.opacity = '0.8';
+    small.textContent = step.explanation;
+
+    revealEl.appendChild(emoji);
+    revealEl.appendChild(strong);
+    revealEl.appendChild(br);
+    revealEl.appendChild(small);
     revealEl.classList.add('visible');
   }
 }
@@ -714,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('audience-view').style.display = 'block';
     document.getElementById('main-header').style.display = 'none';
     document.getElementById('conn-bar').style.display = 'none';
-    setInterval(pollAudience, 2000);
+    window._challengeInterval = setInterval(pollAudience, AUDIENCE_POLL_MS);
     pollAudience();
   } else {
     // Presenter mode
@@ -724,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
       generateQR();
       pollChallenge();
     }
-    setInterval(pollChallenge, 2000);
+    window._challengeInterval = setInterval(pollChallenge, AUDIENCE_POLL_MS);
   }
 });
 </script>
