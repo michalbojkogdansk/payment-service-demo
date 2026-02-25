@@ -10,7 +10,9 @@ from typing import Optional
 
 app = FastAPI(title="payment-service-demo")
 
-DEMO_SECRET = os.environ.get("DEMO_SECRET", "demo2026")
+DEMO_SECRET = os.environ.get("DEMO_SECRET")
+if not DEMO_SECRET:
+    raise RuntimeError("DEMO_SECRET env var is required — set it in Render environment variables")
 
 def require_secret(x_demo_secret: str = Header(default="")):
     if DEMO_SECRET and x_demo_secret != DEMO_SECRET:
