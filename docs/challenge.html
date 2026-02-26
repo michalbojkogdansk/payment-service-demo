@@ -443,7 +443,12 @@ async function pollChallenge() {
 }
 
 function renderChallenge(d) {
-  if (d.elapsed > 0) {
+  if (d.done && !window._challengeDone) {
+    window._challengeDone = true;
+    clearInterval(window._challengeInterval);
+    window._challengeInterval = null;
+  }
+  if (d.elapsed > 0 && !window._challengeDone) {
     document.getElementById('ch-timer').textContent = '⏱ ' + fmtTime(d.elapsed);
   }
   if (d.done) {
@@ -548,6 +553,7 @@ async function startChallenge() {
   btn.textContent = '⏳ Starting...';
   btn.disabled = true;
 
+  window._challengeDone = false;
   document.getElementById('ch-results-card').classList.remove('visible');
   document.getElementById('ch-reveal-box').classList.remove('visible');
   document.getElementById('ch-vote-bars').innerHTML = '<div style="color:var(--muted);font-size:0.8rem">Waiting for votes...</div>';
@@ -601,6 +607,7 @@ async function resetChallenge() {
   } catch(e) {
     console.warn('reset failed:', e.message);
   }
+  window._challengeDone = false;
   lastChallengeStep = -99;
   document.getElementById('ch-step-num').textContent = '—';
   document.getElementById('ch-timer').textContent = '——:——';
