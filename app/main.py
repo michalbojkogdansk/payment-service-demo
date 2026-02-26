@@ -83,12 +83,12 @@ CHALLENGE_STEPS = [
         "title": "Step 1 — Alert Received",
         "situation": "It's 2:47 AM. CRITICAL alert fires:\n'Payment Service Latency > 2s'\n\nWhat do you do first?",
         "options": {
-            "A": "Restart the service immediately",
-            "B": "Check the logs to understand the error",
+            "A": "Check the logs to understand the error",
+            "B": "Restart the service immediately",
             "C": "Probably a false positive — go back to sleep",
             "D": "Call the database team immediately"
         },
-        "correct": "B",
+        "correct": "A",
         "hint": "67% of alerts are false positives — but CRITICAL means $5,600/min. Always diagnose first.",
         "explanation": "Blind restarts can corrupt active transactions. Diagnose before acting."
     },
@@ -98,11 +98,11 @@ CHALLENGE_STEPS = [
         "situation": "You open the logs and see:\n\nERROR: Connection pool exhausted (100/100)\nWARN:  Retry 3/3 failed — no connections available\nERROR: Payment rejected — cannot acquire DB connection\n\nWhat is the root cause?",
         "options": {
             "A": "Network connectivity failure",
-            "B": "Connection pool exhausted — too many open DB connections",
-            "C": "Memory leak in application",
+            "B": "Memory leak in application",
+            "C": "Connection pool exhausted — too many open DB connections",
             "D": "Database server crashed"
         },
-        "correct": "B",
+        "correct": "C",
         "hint": "The log says it directly: 'Connection pool exhausted (100/100)'",
         "explanation": "Always read what the error message tells you directly before assuming."
     },
@@ -112,11 +112,11 @@ CHALLENGE_STEPS = [
         "situation": "You check system metrics:\n\nCPU:            23%   (normal)\nMemory:         44%   (normal)\nDB connections: 100/100  (MAXED)\nNetwork:        OK\n\nWhat type of problem is this?",
         "options": {
             "A": "Infrastructure problem — call DevOps",
-            "B": "Application-level issue — DB connection management",
-            "C": "DDoS attack — block incoming traffic",
-            "D": "Database server down — call DBA"
+            "B": "DDoS attack — block incoming traffic",
+            "C": "Database server down — call DBA",
+            "D": "Application-level issue — DB connection management"
         },
-        "correct": "B",
+        "correct": "D",
         "hint": "CPU and memory are fine. The bottleneck is application logic, not infrastructure.",
         "explanation": "Knowing the problem type directs you to the right team and the right runbook."
     },
@@ -125,12 +125,12 @@ CHALLENGE_STEPS = [
         "title": "Step 4 — Find the Runbook",
         "situation": "You open the runbook library:\n\nNET-001  Network Outage\nDB-003   Connection Pool Exhaustion\nAPP-007  Memory Leak\nSEC-002  DDoS Mitigation\n\nWhich procedure applies?",
         "options": {
-            "A": "NET-001: Network Outage",
-            "B": "DB-003: Connection Pool Exhaustion",
+            "A": "DB-003: Connection Pool Exhaustion",
+            "B": "NET-001: Network Outage",
             "C": "APP-007: Memory Leak",
             "D": "SEC-002: DDoS Mitigation"
         },
-        "correct": "B",
+        "correct": "A",
         "hint": "Match the root cause to the procedure — Connection Pool maps to DB section",
         "explanation": "A precise runbook match prevents wasted steps and directly reduces MTTR."
     },
@@ -140,11 +140,11 @@ CHALLENGE_STEPS = [
         "situation": "DB-003 runbook says:\n'Before restarting, gracefully drain active connections'\n\nWhich command do you run?",
         "options": {
             "A": "kill -9 $(pgrep payment-service)",
-            "B": "./drain.sh --graceful --timeout 10",
-            "C": "systemctl stop payment-service",
+            "B": "systemctl stop payment-service",
+            "C": "./drain.sh --graceful --timeout 10",
             "D": "pkill -SIGTERM payment"
         },
-        "correct": "B",
+        "correct": "C",
         "hint": "Graceful drain lets active transactions complete — prevents data loss",
         "explanation": "Force-kill drops active DB transactions mid-flight. Graceful drain is the safe path."
     },
@@ -154,11 +154,11 @@ CHALLENGE_STEPS = [
         "situation": "Drain is running. 8 seconds remaining.\nYour manager pings Slack:\n'FIX IT NOW — CEO is watching the dashboard!'\n\nWhat do you do?",
         "options": {
             "A": "Interrupt drain and restart immediately",
-            "B": "Reply 'on it' and wait for drain to finish",
-            "C": "Ask manager to make the decision",
-            "D": "Escalate to VP Engineering"
+            "B": "Ask manager to make the decision",
+            "C": "Escalate to VP Engineering",
+            "D": "Reply 'on it' and wait for drain to finish"
         },
-        "correct": "B",
+        "correct": "D",
         "hint": "8 seconds vs potential data corruption — the math is clear",
         "explanation": "Pressure-driven shortcuts in incident response cause secondary incidents."
     },
@@ -181,12 +181,12 @@ CHALLENGE_STEPS = [
         "title": "Step 8 — Monitor Recovery",
         "situation": "Service restarted.\nFirst health check returns:\n\nHTTP 200 OK\n\nIs the incident resolved?",
         "options": {
-            "A": "Yes — close the incident immediately",
-            "B": "No — wait for 3 consecutive healthy responses",
+            "A": "No — wait for 3 consecutive healthy responses",
+            "B": "Yes — close the incident immediately",
             "C": "No — monitor for at least 30 minutes",
             "D": "Yes — notify the team right now"
         },
-        "correct": "B",
+        "correct": "A",
         "hint": "Services often flap after restart — one 200 OK can be a fluke",
         "explanation": "3 consecutive healthy responses is a reasonable signal. 1 is not enough."
     },
@@ -196,11 +196,11 @@ CHALLENGE_STEPS = [
         "situation": "3x consecutive HTTP 200 OK\nLogs: 'Payment processed OK — $142 (txn #1247)'\nDB connections: 23/100\n\nService is healthy. What is next?",
         "options": {
             "A": "Go back to sleep — it is 3:15 AM",
-            "B": "Write incident report while details are fresh",
-            "C": "Add more DB connection slots to prevent recurrence",
+            "B": "Add more DB connection slots to prevent recurrence",
+            "C": "Write incident report while details are fresh",
             "D": "Deploy a hotfix immediately"
         },
-        "correct": "B",
+        "correct": "C",
         "hint": "Without documentation, this same incident will repeat in 2 weeks",
         "explanation": "Blameless post-mortems close the loop and prevent repeat incidents."
     },
@@ -210,11 +210,11 @@ CHALLENGE_STEPS = [
         "situation": "You open the incident report template.\n\nWhat is the single most important field to fill in?",
         "options": {
             "A": "Timeline of events (minute by minute)",
-            "B": "Names of engineers involved",
-            "C": "Root cause + corrective action to prevent recurrence",
+            "B": "Root cause + corrective action to prevent recurrence",
+            "C": "Names of engineers involved",
             "D": "Business impact in dollars"
         },
-        "correct": "C",
+        "correct": "B",
         "hint": "Timeline and impact are useful — but root cause is what stops the next 2 AM wake-up",
         "explanation": "Root cause + corrective action is the only field that prevents recurrence."
     }
